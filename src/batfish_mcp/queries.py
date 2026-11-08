@@ -42,8 +42,8 @@ def fork_snapshot(
 ):
     """Forks a snapshot (optionally failing nodes/interfaces).
 
-    ``name`` is the fork's name, defaulting to ``<base>_Fail`` (Bat-Q's
-    convention); returns the name actually used.
+    ``name`` is the fork's name, defaulting to ``<base>_Fail``; returns
+    the name actually used.
     """
     bf = get_session()
     final_name = name if name is not None else active_snapshot + "_Fail"

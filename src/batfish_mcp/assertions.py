@@ -47,9 +47,9 @@ ANSWER_BASED = (
 )
 
 
-def batq_min_results(answer, num=1, soft=False):
+def assert_min_results(answer, num=1, soft=False):
     """
-    Bat-Q's own assertion: the answer has at least `num` rows (default 1).
+    Built-in assertion: the answer has at least `num` rows (default 1).
     Mirrors pybatfish's hard/soft behavior and answer handling.
     """
     if isinstance(answer, DataFrame):
@@ -67,8 +67,8 @@ def batq_min_results(answer, num=1, soft=False):
     return True
 
 
-# Assertions implemented by Bat-Q itself (spec source == "batq").
-CUSTOM = {"batq_min_results": batq_min_results}
+# Assertions implemented locally (spec source == "builtin").
+CUSTOM = {"assert_min_results": assert_min_results}
 
 
 @dataclass
@@ -124,7 +124,7 @@ def run_assertion(name: str, snapshot: Optional[str] = None, **params: Any):
     - Session-bound assertions (e.g., assert_no_forwarding_loops) are called
       through the active Batfish session, with the snapshot passed explicitly.
     - Answer-based assertions (assert_zero_results, assert_num_results,
-      assert_has_route, assert_has_no_route, batq_min_results) are called with
+      assert_has_route, assert_has_no_route, assert_min_results) are called with
       the params given (e.g., answer=..., num=...) and ignore `snapshot`.
 
     Assertions are always run as hard assertions (soft=False), so a failed

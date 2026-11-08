@@ -18,7 +18,7 @@ limitations under the License.
 """
 Headless serialization helpers for Batfish answers.
 
-Pure DataFrame/trace transformations from Bat-Q's presenter.py, kept so
+Pure DataFrame/trace transformations, kept so
 MCP tool results can drop empty columns and flatten traces before being
 serialized to JSON/Markdown for the LLM. The Streamlit display functions
 (``display_*``, ``build_column_config``) were removed.

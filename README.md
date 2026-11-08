@@ -1,11 +1,13 @@
 # batfish-mcp
 
 An MCP (Model Context Protocol) server exposing [Batfish](https://batfish.org)
-as tools for AI assistants. Adapted from Bat-Q's headless core (`common/`),
-with the Streamlit GUI replaced by an MCP transport.
+as tools for AI assistants.
 
 Lets an LLM ask 60 curated Batfish questions, run assertions, diff failures,
 and describe topology/reachability from a snapshot zip.
+
+> This project is an offshoot of Bat-Q, a Streamlit GUI over Batfish — see
+> [Acknowledgements](#acknowledgements).
 
 ## Prerequisites
 
@@ -178,13 +180,13 @@ await tools["batfish-mcp"].batfish_get_topology({
 
 | Tool | Description |
 |---|---|
-| `batfish_list_questions(category?)` | The 60-question curated catalog (from Bat-Q's `bfqs.py`), with input types + `TYPE_HINTS` descriptions. No server needed. |
+| `batfish_list_questions(category?)` | The 60-question curated catalog, with input types + `TYPE_HINTS` descriptions. No server needed. |
 | `batfish_list_snapshots(network?)` | Snapshots of a network. |
-| `batfish_upload_snapshot(name, zip_base64, network?, overwrite?)` | Upload a snapshot zip (base64). Name is sanitized (`safe_snapshot_name`); collisions are unique-ified (`name_1`, ...) like Bat-Q. |
+| `batfish_upload_snapshot(name, zip_base64, network?, overwrite?)` | Upload a snapshot zip (base64). Name is sanitized (`safe_snapshot_name`); collisions are unique-ified (`name_1`, ...). |
 | `batfish_run_question(fun, options?, snapshot?, reference_snapshot?, network?)` | Run any question; `reference_snapshot` + `snapshot` runs a differential question. Returns JSON-safe `{fun, snapshot, reference_snapshot, status, rows, removed_columns}`. |
 | `batfish_list_assertions()` | Live pybatfish assertion names + the 16-entry registry (`specs`) with parameter descriptions. |
 | `batfish_run_assertion(name, params?, question?, snapshot?, network?)` | Validate + run one assertion (answer-based ones fetch the answer first). Returns `{type, status, message, snapshot, ran_at, runtime, fun?, answer_rows?}`. |
-| `batfish_run_assertion_suite(suite_yaml, snapshot?, network?)` | Validate (all-or-nothing) + run a YAML suite — same schema as Bat-Q's (`examples/assertions.yaml`). Returns `results[]`, `errors[]`, `summary`. |
+| `batfish_run_assertion_suite(suite_yaml, snapshot?, network?)` | Validate (all-or-nothing) + run a YAML suite (`examples/assertions.yaml` shows the schema). Returns `results[]`, `errors[]`, `summary`. |
 | `batfish_fork_snapshot(base_name, name?, failed_nodes?, failed_interfaces?, overwrite?, network?)` | Fork a snapshot, optionally failing nodes/interfaces (then diff fork vs base with a differential question). |
 | `batfish_get_topology(kind, snapshot?, network?)` | `kind="layer3"` (from `layer3Edges`, with interface titles) or `"routing"` (from `bgpEdges`) as `{kind, snapshot, node_count, edge_count, nodes, edges}`. |
 
@@ -193,7 +195,7 @@ All tools share the singleton Batfish session (`batfish_mcp.session`,
 
 ## Examples
 
-Upload `batq/abc_net.zip` and ask about it:
+Upload `abc_net.zip` and ask about it:
 
 ```
 batfish_upload_snapshot(name="abc_net.zip", zip_base64="UEsDBB==", network="NETWORK")
@@ -221,33 +223,37 @@ batfish_get_topology(kind="routing", snapshot="abc_net", network="NETWORK")
 * **No parse issues but wrong IPs?** → run `batfish_run_question(fun="initIssues")` and `fileParseStatus` first.
 * **Reachability to `240.254.254.1` fails but `8.8.8.8` works** → `240.0.0.0/4` is reserved; ISP egress on `Block outgoing traffic using reserved addresses` drops it. Use a public IP to test internet egress.
 
-## Layout (mapped from Bat-Q)
+## Layout
 
 ```
 src/batfish_mcp/
-  server.py           # NEW — FastMCP tools over the headless core
-  session.py          # NEW — thread-safe singleton Session (replaces st.session_state)
-  catalog.py          # common/bfqs.py     (Streamlit @st.cache_data removed)
-  assertion_specs.py  # common/assertion_specs.py, unchanged
-  assertion_io.py     # common/assertion_io.py  (import path fixed)
-  assertions.py       # common/assertions.py    (get_bf_session -> get_session)
-  queries.py          # common/queries.py       (get_bf_session -> get_session; errors raise)
-  utils.py            # common/utils.py         (safe_snapshot_name; no init_session_state)
-  presenter.py        # common/presenter.py     (pure format_result*/json_to_dataframe only)
-  hints.py            # common/inputs.py TYPE_HINTS only
-  topology.py         # common/plotting.py      (get_topology/get_routing_topology)
+  server.py           # FastMCP tools over the headless core
+  session.py          # thread-safe singleton Session
+  catalog.py          # curated question catalog (60 questions)
+  assertion_specs.py  # assertion registry (params as {name, type, optional})
+  assertion_io.py     # assertion YAML load/validate/dump
+  assertions.py       # assertion runner (session- vs answer-based, PASS/FAIL/ERROR)
+  queries.py          # question runner (incl. differential snapshots)
+  utils.py            # snapshot-name sanitizing, template helpers
+  presenter.py        # pure DataFrame/trace serialization helpers
+  hints.py            # TYPE_HINTS — tool-parameter descriptions
+  topology.py         # L3 + routing graph construction from answers
 tests/
-  fakes.py            # Bat-Q's FakeBatfish + assertion fake (no server needed)
-  test_queries.py     # ported
-  test_assertions.py  # ported
+  fakes.py            # FakeBatfish + assertion fake (no server needed)
+  test_queries.py
+  test_assertions.py
   test_server.py      # MCP tools + wire round-trip
 examples/assertions.yaml
 HOW-TO.md             # mini tutorial (see this file for a walkthrough)
 ```
 
-Dropped (GUI-only): `Home.py`, `views/*`, `common/spreadsheet.py`,
-`common/htmlreport.py`, `common/assertion_report.py`,
-`common/presenter.py:display_*`, `common/inputs.py:generate_input_fields`.
+## Acknowledgements
+
+batfish-mcp started as an offshoot of Bat-Q, a Streamlit GUI over
+Batfish. The reusable headless core (question catalog, assertion
+registry and runner, answer serialization, snapshot tooling) came from
+there; the GUI layer was dropped and replaced with the MCP transport.
+Both projects are Apache-2.0.
 
 ## Tests
 
@@ -261,4 +267,4 @@ sync with the installed pybatfish (scripted-assertion signatures).
 
 ## License
 
-Apache-2.0 (see `LICENSE`), carried over from Bat-Q.
+Apache-2.0 (see `LICENSE`).

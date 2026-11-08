@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "batfish-mcp"
 version = "0.1.0"
-description = "MCP server for Batfish, adapted from Bat-Q's headless core"
+description = "MCP server for Batfish: questions, assertions, topology, and failure testing as tools"
 readme = "README.md"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.10"

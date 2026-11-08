@@ -23,7 +23,7 @@ return await tools["batfish-mcp"].batfish_list_questions({});
 
 **Answer: 60**
 
-Breakdown from the catalog (`Bat-Q bfqs.py`):
+Breakdown from the catalog:
 
 * Snapshot Input: 3 (`initIssues`, `fileParseStatus`, `parseWarning`)
 * Configuration Properties: 19

@@ -1,7 +1,5 @@
 """
-Tests for the assertion registry, YAML schema and runner helpers, ported
-from Bat-Q's tests/test_assertions.py (imports from batfish_mcp instead
-of common; session injection via session.set_session()).
+Tests for the assertion registry, YAML schema and runner helpers.
 Run from the repository root: python -m pytest tests
 """
 
@@ -159,10 +157,10 @@ def test_runner_statuses():
     assert A.run_assertion("assert_num_results", answer=df2, num=2).status == "pass"
     assert A.run_assertion("assert_num_results", answer=df2, num=3).status == "fail"
     assert A.run_assertion("assert_zero_results", answer="x").status == "error"
-    assert A.run_assertion("batq_min_results", answer=df2, num=2).status == "pass"
-    assert A.run_assertion("batq_min_results", answer=df2, num=3).status == "fail"
-    assert A.run_assertion("batq_min_results", answer=df2).status == "pass"
-    assert A.run_assertion("batq_min_results", answer=pd.DataFrame()).status == "fail"
+    assert A.run_assertion("assert_min_results", answer=df2, num=2).status == "pass"
+    assert A.run_assertion("assert_min_results", answer=df2, num=3).status == "fail"
+    assert A.run_assertion("assert_min_results", answer=df2).status == "pass"
+    assert A.run_assertion("assert_min_results", answer=pd.DataFrame()).status == "fail"
 
 
 # ------------------------------------------------------ Phase 2: validation

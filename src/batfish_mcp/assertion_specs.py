@@ -15,29 +15,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-# Registry of the assertions Bat-Q offers.
+# Registry of the assertions this server offers.
 #
-# The registry drives the Assertions page (forms are generated from it, as the
-# Questions page is generated from bfqs.py), the YAML validation, and the runner.
-# It deliberately has no Streamlit dependency so it can be unit tested.
+# The registry drives the MCP tool schemas, the YAML validation, and the
+# runner. Params use the same {name, type, optional} shape everywhere so
+# they can be exposed as tool parameters.
 #
 # Spec fields
 # -----------
 # label        Human-readable name.
-# description  One-line explanation shown in the UI.
-# group        UI grouping.
+# description  One-line explanation.
+# group        Grouping for list output.
 # phase        Release phase the assertion is planned for (1 or 2).
-# source       "pybatfish" (call the pybatfish function) or "batq" (implemented
-#              in common/assertions.py).
+# source       "pybatfish" (call the pybatfish function) or "builtin"
+#              (implemented in assertions.py).
 # call         "session": called through Session.asserts and given a snapshot.
 #              "answer":  called with the answer of a question.
 # answer_from  Only for call == "answer".
-#                "question": the user picks a question (fun + options).
-#                "routes":   Bat-Q runs the routes question itself.
+#                "question": the caller picks a question (fun + options).
+#                "routes":   the runner runs the routes question itself.
 # answer_param Name of the function argument that receives the answer/routes.
-# params       User-supplied parameters, in the same shape generate_input_fields
-#              expects: {"name", "type", "optional"}. "optional" defaults to
-#              True. soft, snapshot, session and df_format are never exposed.
+# params       User-supplied parameters: {"name", "type", "optional"}.
+#              "optional" defaults to True. soft, snapshot, session and
+#              df_format are never exposed.
 
 SESSION = "session"
 ANSWER = "answer"
@@ -204,12 +204,12 @@ ASSERTION_SPECS = {
         "answer_param": "answer",
         "params": [{"name": "num", "type": "int", "optional": False}],
     },
-    "batq_min_results": {
+    "assert_min_results": {
         "label": "Question returns at least N rows",
         "description": "The selected question returns at least N rows (N defaults to 1).",
         "group": "Question results",
         "phase": 1,
-        "source": "batq",
+        "source": "builtin",
         "call": ANSWER,
         "answer_from": FROM_QUESTION,
         "answer_param": "answer",

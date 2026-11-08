@@ -18,7 +18,7 @@ limitations under the License.
 """
 Batfish session singleton for the MCP server.
 
-Replaces Bat-Q's Streamlit ``st.session_state["bf_session"]``. The session
+Replaces the former Streamlit ``st.session_state["bf_session"]`` coupling. The session
 is created lazily from the ``BATFISH_SERVER`` environment variable (default
 ``127.0.0.1``) and shared by all tool calls, behind a lock so concurrent
 MCP requests cannot race its creation.
