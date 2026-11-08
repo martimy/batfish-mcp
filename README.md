@@ -1,3 +1,4 @@
+<!-- mcp-name: io.github.martimy/batfish-mcp -->
 # batfish-mcp
 
 An MCP (Model Context Protocol) server that exposes [Batfish](https://batfish.org)
