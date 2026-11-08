@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "batfish-mcp"
+version = "0.1.0"
+description = "MCP server for Batfish, adapted from Bat-Q's headless core"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.10"
+dependencies = [
+    "pybatfish",
+    "fastmcp>=4,<5",
+    "pandas",
+    "pyyaml",
+    "networkx",
+    "plotly",
+]
+
+[project.scripts]
+batfish-mcp = "batfish_mcp.server:main"
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "tests"]

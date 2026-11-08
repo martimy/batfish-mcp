@@ -1,2 +1,6 @@
 **/__pycache__/
 Conversation.md
+.mcp/
+.venv/
+*.egg-info/
+abc_net.zip

@@ -33,24 +33,39 @@ def set_snapshot(active_snapshot):
     return bf.set_snapshot(active_snapshot)
 
 
-def fork_snapshot(active_snapshot, failed_nodes=None, failed_interfaces=None):
+def fork_snapshot(
+    active_snapshot,
+    failed_nodes=None,
+    failed_interfaces=None,
+    name=None,
+    overwrite=True,
+):
+    """Forks a snapshot (optionally failing nodes/interfaces).
+
+    ``name`` is the fork's name, defaulting to ``<base>_Fail`` (Bat-Q's
+    convention); returns the name actually used.
+    """
     bf = get_session()
+    final_name = name if name is not None else active_snapshot + "_Fail"
     bf.fork_snapshot(
         base_name=active_snapshot,
-        name=active_snapshot + "_Fail",
+        name=final_name,
         deactivate_nodes=failed_nodes,
         deactivate_interfaces=failed_interfaces,
-        overwrite=True,
+        overwrite=overwrite,
     )
+    return final_name
 
 
-def run_query(question, snapshots=None):
+def run_query(question, snapshots=None, snapshot=None):
     """
     Runs a Batfish question and returns its answer.
 
     ``question`` is ``{"fun": <pybatfish question name>,
     "options": {<kwargs>}}``. ``snapshots`` is either ``None`` or a
     ``(reference_snapshot, snapshot)`` pair for differential questions.
+    ``snapshot`` runs the question on that snapshot explicitly (the MCP
+    server passes every snapshot this way, so no session state is needed).
 
     Errors (unknown question, bad options, connection failure, ...) are
     raised, not swallowed, so the caller can report them to the LLM
@@ -68,6 +83,11 @@ def run_query(question, snapshots=None):
         return fun().answer(
             snapshot=snapshots[1], reference_snapshot=snapshots[0]
         )
+
+    if snapshot is not None:
+        if qargs:
+            return fun(**qargs).answer(snapshot=snapshot)
+        return fun().answer(snapshot=snapshot)
 
     if qargs:
         return fun(**qargs).answer()
