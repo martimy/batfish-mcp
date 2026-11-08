@@ -162,7 +162,7 @@ def load_assertions(text, known_funs=None):
     if version != SCHEMA_VERSION:
         return [], [
             f"Unsupported assertion file version {version!r} "
-            f"(this Bat-Q reads version {SCHEMA_VERSION})."
+            f"(this server supports version {SCHEMA_VERSION})."
         ]
 
     items = data["assertions"]

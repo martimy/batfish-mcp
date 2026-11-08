@@ -24,7 +24,7 @@ serialized with a re-entrant lock because a shared pybatfish ``Session``
 carries mutable state (the current network) and is not safe for
 concurrent use.
 
-Tool surface (derived from Bat-Q's GUI):
+Tool surface:
 
 - ``batfish_list_questions``       — the curated question catalog (catalog.py)
 - ``batfish_list_snapshots``       — snapshots of the current network
@@ -103,7 +103,7 @@ def _serialize_answer(answer: Any, fun: str, snapshot: Optional[str],
 
 @mcp.tool()
 def batfish_list_questions(category: Optional[str] = None) -> list[dict]:
-    """List Batfish questions from the curated catalog (Bat-Q's bfqs.py).
+    """List Batfish questions from the curated catalog.
 
     Returns one dict per question: ``{category, fun, name, type, inputs}``,
     where each input is ``{name, type, hint}`` (``hint`` comes from
@@ -161,7 +161,7 @@ def batfish_upload_snapshot(
     The name is sanitized with ``safe_snapshot_name`` (Batfish allows only
     letters, digits, '-' and '_'). Unless ``overwrite`` is true, an
     existing snapshot of that name is kept and a unique name is chosen
-    (``base``, ``base_1``, ...), matching Bat-Q. If ``network`` is given,
+    (``base``, ``base_1``, ...). If ``network`` is given,
     the session is pointed at it first. Returns the name actually used.
     """
     try:
@@ -376,7 +376,7 @@ def batfish_run_assertion(
       "8.8.8.8"}}`` for ``assert_flows_succeed``.
     - ``question``: ``{"fun": ..., "options": {...}}`` — required for
       answer-based assertions (``assert_zero_results``, ``assert_num_results``,
-      ``batq_min_results``); the question is run first and its answer checked.
+      ``assert_min_results``); the question is run first and its answer checked.
     - ``snapshot`` / ``network``: run on that snapshot (and network first),
       otherwise the session's current ones.
 
@@ -414,8 +414,7 @@ def batfish_run_assertion_suite(
 ) -> dict:
     """Validate and run an assertion suite (YAML text) on a snapshot.
 
-    ``suite_yaml`` uses the Bat-Q suite schema (see ``examples/assertions.yaml``
-    in Bat-Q)::
+    ``suite_yaml`` uses the suite schema (see ``examples/assertions.yaml``)::
 
         version: 1
         assertions:
@@ -472,7 +471,7 @@ def batfish_fork_snapshot(
       existing name is kept and a unique one is chosen
       (``name``, ``name_1``, ...).
     - ``failed_nodes`` / ``failed_interfaces``: names to deactivate in
-      the fork (Bat-Q's failure-testing flow, e.g. fork then diff the
+      the fork (failure-testing flow: fork, then diff the
       fork against the base with a differential question).
     - ``network``: the network both snapshots live in, if given.
 

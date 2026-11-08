@@ -18,9 +18,9 @@ limitations under the License.
 """
 batfish_mcp — headless core for an MCP server over Batfish.
 
-Adapted from Bat-Q's ``common/`` package (GUI wrapper over Batfish).
-Streamlit dependencies were removed; the Batfish session is managed in
-``session.py`` and tools are exposed by ``server.py``.
+Derived from an earlier Streamlit GUI app over Batfish, stripped of the
+GUI coupling: the Batfish session is managed in ``session.py`` and tools
+are exposed by ``server.py``.
 """
 
 __all__ = [

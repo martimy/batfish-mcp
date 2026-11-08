@@ -1,10 +1,6 @@
-"""Tests for batfish_mcp/queries.py with a fake Batfish session.
-
-Adapted from Bat-Q's tests/test_queries.py: the Streamlit session_state
-fixture is replaced by injecting the fake via session.set_session().
-Note the deliberate behavior change from Bat-Q: run_query no longer
-swallows errors (returns None) — it raises, so MCP tools can report
-failures to the LLM.
+"""Tests for batfish_mcp/queries.py with a fake Batfish session (injected
+via session.set_session()). Note: run_query raises on error instead of
+returning None, so MCP tools can report failures to the LLM.
 """
 
 from types import SimpleNamespace

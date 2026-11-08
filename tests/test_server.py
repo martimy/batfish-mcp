@@ -77,7 +77,7 @@ def test_list_and_upload_snapshot(fake):
     result = server.batfish_upload_snapshot(name="abc net.zip", zip_base64=blob)
     assert result == {"name": "abc_net"}  # safe_snapshot_name applied
     assert "abc_net" in fake.list_snapshots()
-    # second upload of the same name is unique-ified, Bat-Q style
+    # second upload of the same name is unique-ified
     again = server.batfish_upload_snapshot(name="abc net.zip", zip_base64=blob)
     assert again == {"name": "abc_net_1"}
 
@@ -127,7 +127,7 @@ def test_assertion_tools_on_fake_session():
     try:
         info = server.batfish_list_assertions()
         assert len(info["specs"]) == 16
-        assert "batq_min_results" in info["answer"]
+        assert "assert_min_results" in info["answer"]
         flows = info["specs"]["assert_flows_succeed"]
         assert flows["needs_question"] is False
         assert flows["params"][1]["hint"]  # HeaderConstraints hint present
@@ -139,7 +139,7 @@ def test_assertion_tools_on_fake_session():
         assert result["snapshot"] == "snapA"
 
         answer_based = server.batfish_run_assertion(
-            name="batq_min_results",
+            name="assert_min_results",
             question={"fun": "bgpEdges"},
             params={"num": 2},
             snapshot="snapA",
