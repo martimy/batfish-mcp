@@ -18,7 +18,7 @@ You will be able to:
 **Assistant calls (via `execute`):**
 
 ```js
-return await tools["batfish-mcp"].batfish_list_questions({});
+return await tools["batfish-q-mcp"].batfish_list_questions({});
 ```
 
 **Answer: 60**
@@ -74,7 +74,7 @@ base64 -w 0 abc_net.zip  # -> 5732 chars, must end with exact padding
 Then via `execute`:
 
 ```js
-return await tools["batfish-mcp"].batfish_upload_snapshot({
+return await tools["batfish-q-mcp"].batfish_upload_snapshot({
   name: "abc_net.zip",
   zip_base64: "<base64-of-zip>",
   network: "NETWORK",
@@ -100,10 +100,10 @@ PY
 **Verify:**
 
 ```js
-await tools["batfish-mcp"].batfish_list_snapshots({ network: "NETWORK" });
+await tools["batfish-q-mcp"].batfish_list_snapshots({ network: "NETWORK" });
 // ["abc_net","abc_net_Fail_1","abc_net_Fail","baseline"]
 
-await tools["batfish-mcp"].batfish_run_question({
+await tools["batfish-q-mcp"].batfish_run_question({
   fun: "initIssues", snapshot: "abc_net", network: "NETWORK"
 });
 // { fun:"initIssues", status:"SUCCESS", rows:[] }  // no parse errors
@@ -120,13 +120,13 @@ await tools["batfish-mcp"].batfish_run_question({
 **Calls:**
 
 ```js
-await tools["batfish-mcp"].batfish_get_topology({
+await tools["batfish-q-mcp"].batfish_get_topology({
   kind: "layer3", snapshot: "abc_net", network: "NETWORK"
 });
-await tools["batfish-mcp"].batfish_get_topology({
+await tools["batfish-q-mcp"].batfish_get_topology({
   kind: "routing", snapshot: "abc_net", network: "NETWORK"
 });
-await tools["batfish-mcp"].batfish_run_question({
+await tools["batfish-q-mcp"].batfish_run_question({
   fun: "nodeProperties", snapshot: "abc_net", network: "NETWORK"
 });
 ```
@@ -161,7 +161,7 @@ Interior is a full-mesh triangle `r1–r2–r3` on OSPF. BGP only at the edge.
 **Step 1 — find IPs:**
 
 ```js
-await tools["batfish-mcp"].batfish_run_question({
+await tools["batfish-q-mcp"].batfish_run_question({
   fun: "interfaceProperties", snapshot: "abc_net", network: "NETWORK"
 });
 // server_1 192.168.1.2/24, server_2 192.168.2.2/24, server_3 192.168.3.2/24
@@ -172,7 +172,7 @@ await tools["batfish-mcp"].batfish_run_question({
 
 ```js
 for (const s of ["server_1","server_2","server_3"]) {
-  await tools["batfish-mcp"].batfish_run_question({
+  await tools["batfish-q-mcp"].batfish_run_question({
     fun: "traceroute", snapshot: "abc_net", network: "NETWORK",
     options: { startLocation: s, headers: { dstIps: "240.254.254.1" } }
   });
@@ -182,7 +182,7 @@ for (const s of ["server_1","server_2","server_3"]) {
 **Step 3 — dig into the firewall:**
 
 ```js
-await tools["batfish-mcp"].batfish_run_question({
+await tools["batfish-q-mcp"].batfish_run_question({
   fun: "searchFilters", snapshot: "abc_net", network: "NETWORK",
   options: { nodes: "fw", filters: "INSIDE-INBOUND", headers: { dstIps: "8.8.8.8" } }
 });
@@ -208,28 +208,28 @@ await tools["batfish-mcp"].batfish_run_question({
 
 ```js
 // topology
-await tools["batfish-mcp"].batfish_get_topology({kind:"layer3", snapshot:"abc_net", network:"NETWORK"});
-await tools["batfish-mcp"].batfish_get_topology({kind:"routing", snapshot:"abc_net", network:"NETWORK"});
+await tools["batfish-q-mcp"].batfish_get_topology({kind:"layer3", snapshot:"abc_net", network:"NETWORK"});
+await tools["batfish-q-mcp"].batfish_get_topology({kind:"routing", snapshot:"abc_net", network:"NETWORK"});
 
 // reachability
-await tools["batfish-mcp"].batfish_run_question({
+await tools["batfish-q-mcp"].batfish_run_question({
   fun:"traceroute", snapshot:"abc_net", network:"NETWORK",
   options:{startLocation:"server_1", headers:{dstIps:"8.8.8.8"}}
 });
 
 // assertions
-await tools["batfish-mcp"].batfish_run_assertion({
+await tools["batfish-q-mcp"].batfish_run_assertion({
   name:"assert_no_forwarding_loops", snapshot:"abc_net", network:"NETWORK"
 });
-await tools["batfish-mcp"].batfish_run_assertion_suite({
+await tools["batfish-q-mcp"].batfish_run_assertion_suite({
   suite_yaml:"version: 1\n...", snapshot:"abc_net", network:"NETWORK"
 });
 
 // failure injection + diff
-await tools["batfish-mcp"].batfish_fork_snapshot({
+await tools["batfish-q-mcp"].batfish_fork_snapshot({
   base_name:"abc_net", failed_nodes:["r1"], network:"NETWORK"
 });
-await tools["batfish-mcp"].batfish_run_question({
+await tools["batfish-q-mcp"].batfish_run_question({
   fun:"differentialReachability",
   options:{pathConstraints:{startLocation:"r2", endLocation:"r3"}, headers:{dstIps:"192.168.3.1"}},
   snapshot:"abc_net_Fail", reference_snapshot:"abc_net", network:"NETWORK"

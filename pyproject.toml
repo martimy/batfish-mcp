@@ -3,12 +3,24 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "batfish-mcp"
+name = "batfish-q-mcp"
 version = "0.1.0"
 description = "MCP server for Batfish: questions, assertions, topology, and failure testing as tools"
 readme = "README.md"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.10"
+authors = [{ name = "Maen Artimy" }]
+keywords = ["mcp", "model-context-protocol", "batfish", "network-automation", "network-verification", "llm"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Telecommunications Industry",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: System :: Networking",
+]
 dependencies = [
     "pybatfish",
     "fastmcp>=4,<5",
@@ -18,10 +30,15 @@ dependencies = [
 ]
 
 [project.scripts]
-batfish-mcp = "batfish_mcp.server:main"
+batfish-q-mcp = "batfish_mcp.server:main"
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
+
+[project.urls]
+Homepage = "https://github.com/martimy/batfish-q-mcp"
+Repository = "https://github.com/martimy/batfish-q-mcp"
+Issues = "https://github.com/martimy/batfish-q-mcp/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
