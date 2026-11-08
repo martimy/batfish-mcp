@@ -1,0 +1,38 @@
+version: 1
+assertions:
+  - type: assert_no_undefined_references
+    description: Every referenced ACL, route-map, etc. is defined.
+  - type: assert_no_forwarding_loops
+  - type: assert_no_unestablished_bgp_sessions
+    name: BGP sessions are up
+  - type: assert_no_incompatible_ospf_sessions
+  - type: assert_zero_results
+    name: No unused structures
+    question:
+      fun: unusedStructures
+  - type: assert_num_results
+    description: Exactly two BGP edges expected.
+    question:
+      fun: bgpEdges
+    params:
+      num: 2
+  # The next three use names from Batfish's own example network (as1border1, the
+  # OUTSIDE_TO_INSIDE ACL, host1); change names and values to match your snapshot.
+  - type: assert_flows_succeed
+    description: Web traffic from as1border1 reaches host1.
+    params:
+      startLocation: as1border1
+      headers:
+        dstIps: 2.128.0.101
+        applications: [HTTP]
+  - type: assert_filter_permits
+    params:
+      filters: OUTSIDE_TO_INSIDE
+      headers:
+        srcIps: 1.1.1.1
+  - type: assert_has_route
+    params:
+      node: as1border1
+      expected_route:
+        Network: 10.0.0.0/24
+        Protocol: bgp
