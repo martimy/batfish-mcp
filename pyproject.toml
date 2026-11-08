@@ -15,7 +15,6 @@ dependencies = [
     "pandas",
     "pyyaml",
     "networkx",
-    "plotly",
 ]
 
 [project.scripts]
