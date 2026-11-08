@@ -61,7 +61,7 @@ from .hints import TYPE_HINTS
 from .session import get_session
 from .utils import safe_snapshot_name
 
-mcp = FastMCP("batfish-mcp")
+mcp = FastMCP("batfish-q-mcp")
 
 # Serializes tool calls: the singleton Session is shared state.
 _lock = threading.RLock()

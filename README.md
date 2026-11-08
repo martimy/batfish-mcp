@@ -1,5 +1,5 @@
-<!-- mcp-name: io.github.martimy/batfish-mcp -->
-# batfish-mcp
+<!-- mcp-name: io.github.martimy/batfish-q-mcp -->
+# batfish-q-mcp
 
 An MCP (Model Context Protocol) server that exposes [Batfish](https://batfish.org)
 as tools for AI assistants. Point it at a snapshot of your network configs and
@@ -40,13 +40,13 @@ docker run --rm -p 9996:9996 -p 9997:9997 batfish/allinone
 The server connects to `127.0.0.1` by default. If Batfish runs elsewhere, set
 `BATFISH_SERVER` (for example `BATFISH_SERVER=<batfish-host>`).
 
-### 2. Install batfish-mcp
+### 2. Install batfish-q-mcp
 
 Requires Python `>=3.10`.
 
 ```bash
-git clone https://github.com/martimy/batfish-mcp.git
-cd batfish-mcp
+git clone https://github.com/martimy/batfish-q-mcp.git
+cd batfish-q-mcp
 
 # Recommended: use a virtual environment
 python3 -m venv .batmcp
@@ -61,7 +61,7 @@ pip install -r requirements.txt
 pip install -e ".[dev]"   # includes test dependencies
 ```
 
-This installs a console script, `batfish-mcp`, which starts the MCP server over stdio.
+This installs a console script, `batfish-q-mcp`, which starts the MCP server over stdio.
 
 ### 3. Connect your MCP client
 
@@ -70,8 +70,8 @@ This installs a console script, `batfish-mcp`, which starts the MCP server over 
 ```json
 {
   "mcpServers": {
-    "batfish-mcp": {
-      "command": "batfish-mcp",
+    "batfish-q-mcp": {
+      "command": "batfish-q-mcp",
       "env": { "BATFISH_SERVER": "127.0.0.1" }
     }
   }
@@ -79,13 +79,13 @@ This installs a console script, `batfish-mcp`, which starts the MCP server over 
 ```
 
 If you installed into a virtual environment, use the absolute path to the script
-instead (find it with `which batfish-mcp` while the environment is active):
+instead (find it with `which batfish-q-mcp` while the environment is active):
 
 ```json
 {
   "mcpServers": {
-    "batfish-mcp": {
-      "command": "/path/to/batfish-mcp/.batmcp/bin/batfish-mcp",
+    "batfish-q-mcp": {
+      "command": "/path/to/batfish-q-mcp/.batmcp/bin/batfish-q-mcp",
       "env": { "BATFISH_SERVER": "127.0.0.1" }
     }
   }
@@ -104,9 +104,9 @@ OpenCode uses `opencode.json` (schema `https://opencode.ai/config.json`) with
   "$schema": "https://opencode.ai/config.json",
   "mcp": {
     "servers": {
-      "batfish-mcp": {
+      "batfish-q-mcp": {
         "type": "local",
-        "command": ["/path/to/batfish-mcp/.batmcp/bin/batfish-mcp"],
+        "command": ["/path/to/batfish-q-mcp/.batmcp/bin/batfish-q-mcp"],
         "environment": {
           "BATFISH_SERVER": "127.0.0.1"
         }
@@ -123,7 +123,7 @@ restart OpenCode from that directory so it reloads MCP servers.
 > tools; call them through the `execute` tool, for example:
 >
 > ```js
-> await tools["batfish-mcp"].batfish_list_questions({});
+> await tools["batfish-q-mcp"].batfish_list_questions({});
 > ```
 
 ### 4. Load a snapshot and ask
@@ -143,7 +143,7 @@ To check that the server starts outside a client:
 
 ```bash
 export BATFISH_SERVER=127.0.0.1
-batfish-mcp
+batfish-q-mcp
 # or
 python -m batfish_mcp.server
 ```
@@ -218,7 +218,7 @@ batfish_get_topology(kind="routing", snapshot="abc_net", network="NETWORK")
 In OpenCode, wrap these in `execute`, for example:
 
 ```js
-await tools["batfish-mcp"].batfish_run_question({
+await tools["batfish-q-mcp"].batfish_run_question({
   fun: "initIssues", snapshot: "abc_net", network: "NETWORK"
 });
 ```
@@ -269,7 +269,7 @@ with the installed pybatfish (scripted-assertion signatures).
 
 ## Acknowledgements
 
-batfish-mcp started as an offshoot of [Bat-Q](https://github.com/martimy/Bat-Q),
+batfish-q-mcp started as an offshoot of [Bat-Q](https://github.com/martimy/Bat-Q),
 a Streamlit GUI over Batfish. The reusable headless core (question catalog,
 assertion registry and runner, answer serialization, snapshot tooling) came
 from there; the GUI layer was dropped and replaced with the MCP transport.
