@@ -1,0 +1,14 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "batfish-mcp": {
+        "type": "local",
+        "command": ["/home/user/batmcp-test/.batmcp/bin/batfish-mcp"],
+        "environment": {
+          "BATFISH_SERVER": "192.168.2.4"
+        }
+      }
+    }
+  }
+}
