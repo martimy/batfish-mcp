@@ -1,8 +1,8 @@
 # batfish-mcp
 
 An MCP (Model Context Protocol) server exposing [Batfish](https://batfish.org)
-as tools for AI assistants. Adapted from [Bat-Q](https://github.com/)'s headless
-core (`common/`), with the Streamlit GUI replaced by an MCP transport.
+as tools for AI assistants. Adapted from Bat-Q's headless core (`common/`),
+with the Streamlit GUI replaced by an MCP transport.
 
 Lets an LLM ask 60 curated Batfish questions, run assertions, diff failures,
 and describe topology/reachability from a snapshot zip.
@@ -17,8 +17,7 @@ and describe topology/reachability from a snapshot zip.
 ## Installation
 
 ```bash
-git clone https://github.com/<org>/batfish-mcp.git
-cd batfish-mcp
+cd batfish-mcp   # or: git clone <URL-of-this-repo>
 
 # Recommended: venv (avoids polluting system Python)
 python3 -m venv .batmcp
