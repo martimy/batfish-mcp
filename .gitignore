@@ -3,3 +3,6 @@
 .venv/
 .batmcp/
 *.egg-info/
+dist/
+build/
+.mcpregistry_*
