@@ -27,6 +27,7 @@ concurrent use.
 Tool surface:
 
 - ``batfish_list_questions``       — the curated question catalog (catalog.py)
+- ``batfish_find_questions``       — plain-language search over the catalog
 - ``batfish_get_question``         — full metadata for one question
 - ``batfish_list_snapshots``       — snapshots of the current network
 - ``batfish_delete_snapshot``      — delete a snapshot
@@ -44,6 +45,7 @@ import binascii
 import functools
 import json
 import os
+import re
 import tempfile
 import threading
 from pathlib import Path
@@ -66,10 +68,17 @@ from .utils import safe_snapshot_name
 
 _INSTRUCTIONS = """\
 This server exposes a curated catalog of 60 Batfish questions plus snapshot,
-assertion, topology, and failure-testing tools. Workflow: call
-batfish_list_questions (optionally filtered by category) to choose a question,
-call batfish_get_question for its full description, output columns, and input
-details, then batfish_run_question with its `fun` and an `options` dict.
+assertion, topology, and failure-testing tools.
+
+Workflow:
+1. Call batfish_list_snapshots to confirm the snapshot and network.
+2. Browse batfish_list_questions for the full catalog. If you know the topic
+   but not the Batfish name, call batfish_find_questions with the user's words
+   (for example "standby gateway", "traffic going in circles", or "which ACL
+   rule blocks this").
+3. Call batfish_get_question(fun) for full descriptions, output columns,
+   defaults, and allowed values.
+4. Call batfish_run_question with its `fun` and an `options` dict.
 
 Each catalog entry includes a one-line description, tags, synonyms, output
 column names, a category description, required/optional inputs, and structured
@@ -77,29 +86,33 @@ type metadata (`fields`, `placeholder`, `example`) for complex values such as
 HeaderConstraints. Inputs marked `required: true` must be supplied; other
 inputs may be omitted. batfish_get_question adds long descriptions, typed
 output columns, input descriptions, defaults, allowed values, and field specs.
+Discovery tools work without a running Batfish; the metadata is checked in.
 
-batfish_list_questions works without a running Batfish; the metadata is checked
-in and generated from Batfish templates plus the official docs.
-
-Question selection guide:
-- Snapshot health: initIssues, fileParseStatus, parseWarning.
-- Configuration: nodeProperties, interfaceProperties, *Configuration,
-  *Properties, namedStructures, definedStructures, unusedStructures.
-- Topology: layer3Edges, userProvidedLayer1Edges; or batfish_get_topology.
-- Routing: bgpSessionStatus, bgpSessionCompatibility, ospfSessionCompatibility,
-  routes, bgpRib, lpmRoutes, testRoutePolicies, searchRoutePolicies.
-- Forwarding: traceroute (one source), reachability (successful flows),
-  bidirectionalReachability, detectLoops, *MultipathConsistency.
-- Filters: testFilters (is traffic permitted?), searchFilters (find matches),
-  findMatchingFilterLines, filterLineReachability (unreachable lines).
-- Tunnels/VXLAN: ipsec*, vxlan*, evpn*.
-- Specifier debugging: resolve*.
-- Snapshot differences: any question with `supports_differential: true` can run
-  with both `snapshot` and `reference_snapshot`; compareFilters and
+Decision guide:
+- Did Batfish parse the snapshot? initIssues, fileParseStatus, parseWarning.
+- Need configuration facts (interfaces, ACLs, BGP/OSPF config)? nodeProperties,
+  interfaceProperties, *Configuration, *Properties, namedStructures.
+- Need the topology graph? Use batfish_get_topology; for raw links use
+  layer3Edges or userProvidedLayer1Edges.
+- Need the routing table or a route lookup? routes (RIB), bgpRib (BGP table),
+  lpmRoutes (which route wins for an IP).
+- Need end-to-end connectivity? traceroute (one source, one direction),
+  reachability (find successful flows), bidirectionalReachability (round trip),
+  detectLoops, *MultipathConsistency.
+- Need to know whether traffic is permitted? testFilters. Need to find which
+  flows or lines match? searchFilters or findMatchingFilterLines. Need
+  shadowed/unreachable rules? filterLineReachability.
+- Need protocol session health? bgpSessionStatus (up/down) vs
+  bgpSessionCompatibility (why misconfigured); same pattern for OSPF.
+- Need a redundant gateway? hsrpProperties or vrrpProperties.
+- Need tunnels or overlays? ipsec*, vxlan*, evpn*.
+- Need to debug a specifier? resolve*.
+- Need to compare snapshots? Any question with `supports_differential: true` can
+  run with both `snapshot` and `reference_snapshot`; compareFilters and
   differentialReachability are differential-only.
 
-Call batfish_list_snapshots before running questions, and pass `network` on
-the first call if the server has no network set.
+If two questions still fit, say so and explain the difference rather than
+guessing. Pass `network` on the first call if the server has no network set.
 """
 
 mcp = FastMCP("batfish-q-mcp", instructions=_INSTRUCTIONS)
@@ -237,6 +250,200 @@ def _summary_input(inp: dict, meta_input: dict) -> dict:
     }
     entry.update(TYPE_HINTS.get(in_type, {}))
     return entry
+
+
+# Fields searched by batfish_find_questions, with their relative weights.
+_SEARCH_FIELDS = (
+    ("fun", 6.0),
+    ("name", 5.0),
+    ("synonyms", 5.0),
+    ("tags", 4.0),
+    ("description", 4.0),
+    ("category", 2.0),
+    ("long_description", 2.0),
+    ("inputs", 2.0),
+    ("outputs", 1.0),
+)
+
+_STOPWORDS = frozenset(
+    {
+        "a", "about", "after", "all", "an", "and", "any", "are", "as", "at",
+        "be", "before", "being", "between", "by", "can", "could", "did", "do",
+        "does", "for", "from", "get", "had", "has", "have", "he", "her",
+        "here", "him", "his", "how", "i", "if", "in", "into", "is", "it",
+        "its", "list", "may", "me", "might", "must", "my", "need", "of", "on",
+        "or", "our", "over", "please", "shall", "she", "should", "show",
+        "some", "tell", "that", "the", "their", "them", "there", "these",
+        "they", "this", "those", "to", "under", "want", "was", "we", "were",
+        "what", "when", "where", "which", "who", "whom", "whose", "why",
+        "will", "with", "would", "you", "your",
+    }
+)
+
+
+def _search_text(value: str) -> str:
+    """Lowercase, tokenize, and pad for whole-word phrase matching."""
+    tokens = re.findall(r"[a-z0-9]+", value.lower())
+    return " " + " ".join(tokens) + " "
+
+
+def _query_terms(query: str) -> list[str]:
+    tokens = re.findall(r"[a-z0-9]+", query.lower())
+    meaningful = [token for token in tokens if token not in _STOPWORDS]
+    return meaningful or tokens
+
+
+@functools.lru_cache(maxsize=1)
+def _question_search_index() -> tuple[dict, ...]:
+    """Searchable text for every catalog question (descriptions + metadata)."""
+    metadata = _question_metadata()
+    index = []
+    for fun, (cat, question) in _catalog_index().items():
+        meta = metadata.get(fun, {})
+        input_bits = []
+        for name, inp in meta.get("inputs", {}).items():
+            input_bits.extend(
+                [
+                    name,
+                    inp.get("display_name", ""),
+                    inp.get("description", ""),
+                ]
+            )
+            for value in inp.get("allowed_values") or []:
+                if isinstance(value, dict):
+                    input_bits.append(str(value.get("value", "")))
+                    input_bits.append(str(value.get("description", "")))
+                else:
+                    input_bits.append(str(value))
+        search = {
+            "fun": _search_text(fun),
+            "name": _search_text(question["name"]),
+            "synonyms": _search_text(" ".join(meta.get("synonyms", []))),
+            "tags": _search_text(" ".join(meta.get("tags", []))),
+            "description": _search_text(meta.get("description", "")),
+            "category": _search_text(
+                cat["category"] + " " + cat.get("description", "")
+            ),
+            "long_description": _search_text(
+                meta.get("long_description", "")
+            ),
+            "inputs": _search_text(" ".join(input_bits)),
+            "outputs": _search_text(
+                " ".join(
+                    column["name"]
+                    for column in meta.get("output_columns", [])
+                )
+            ),
+        }
+        index.append(
+            {
+                "fun": fun,
+                "name": question["name"],
+                "category": cat["category"],
+                "description": meta.get("description", ""),
+                "tags": list(meta.get("tags", [])),
+                "synonyms": list(meta.get("synonyms", [])),
+                "supports_differential": True,
+                "differential_only": question.get("type") == "differential",
+                "search": search,
+            }
+        )
+    return tuple(index)
+
+
+def _field_hit(term: str, text: str) -> float:
+    """1.0 for a whole-word match, 0.5 for a substring match."""
+    if f" {term} " in text:
+        return 1.0
+    if term in text:
+        return 0.5
+    return 0.0
+
+
+@mcp.tool()
+def batfish_find_questions(query: str, limit: int = 5) -> dict:
+    """Find catalog questions from a plain-language query.
+
+    ``query`` is the user's own wording, e.g. ``"standby gateway"``,
+    ``"traffic going in circles"``, or ``"which firewall rule is blocking"``.
+    It is matched against question names, descriptions, categories, tags,
+    synonyms, input names/descriptions/allowed values, and output columns.
+
+    Returns ``{query, count, total_matches, results}`` where each result is
+    ``{fun, name, category, description, tags, synonyms,
+    supports_differential, differential_only, score, matched_on}``. Results are
+    ranked by relevance and capped at ``limit`` (default 5).
+
+    Use ``batfish_get_question(fun)`` for full input/output details. This tool
+    uses checked-in metadata and does not contact Batfish.
+    """
+    if not query.strip():
+        raise ValueError("query must not be empty")
+    if limit < 1:
+        raise ValueError("limit must be at least 1")
+
+    terms = _query_terms(query)
+    if not terms:
+        return {
+            "query": query,
+            "count": 0,
+            "total_matches": 0,
+            "results": [],
+        }
+
+    phrase = " ".join(terms)
+    ranked = []
+    for entry in _question_search_index():
+        score = 0.0
+        matched = set()
+        matched_fields = set()
+        for term in terms:
+            best = 0.0
+            for field, weight in _SEARCH_FIELDS:
+                hit = _field_hit(term, entry["search"][field])
+                if hit:
+                    best = max(best, weight * hit)
+                    matched_fields.add(field)
+            if best:
+                score += best
+                matched.add(term)
+
+        if not matched:
+            continue
+
+        if len(terms) > 1:
+            for field, _ in _SEARCH_FIELDS:
+                if f" {phrase} " in entry["search"][field]:
+                    score += 8.0
+                    matched_fields.add(field)
+                    break
+
+        coverage = len(matched) / len(terms)
+        score *= 0.5 + coverage
+        ranked.append((score, len(matched), entry, sorted(matched_fields)))
+
+    ranked.sort(key=lambda item: (-item[0], -item[1], item[2]["fun"]))
+    results = [
+        {
+            "fun": entry["fun"],
+            "name": entry["name"],
+            "category": entry["category"],
+            "description": entry["description"],
+            "tags": entry["tags"],
+            "synonyms": entry["synonyms"],
+            "supports_differential": entry["supports_differential"],
+            "differential_only": entry["differential_only"],
+            "score": round(score, 2),
+            "matched_on": matched_fields,
+        }
+        for score, _, entry, matched_fields in ranked[:limit]
+    ]
+    return {
+        "query": query,
+        "count": len(results),
+        "total_matches": len(ranked),
+        "results": results,
+    }
 
 
 @mcp.tool()

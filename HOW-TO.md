@@ -39,6 +39,22 @@ Breakdown from the catalog:
 
 > Tip: call with `category` to filter, e.g. `{ category: "Packet Forwarding" }`.
 
+## How do I find a question without knowing its name?
+
+**You:** "who is the standby gateway?"
+
+**Assistant calls (via `execute`):**
+
+```js
+return await tools["batfish-q-mcp"].batfish_find_questions({
+  query: "standby gateway"
+});
+```
+
+This returns ranked candidates such as `hsrpProperties` and `vrrpProperties`,
+with `score` and `matched_on`. Use `batfish_get_question({ fun })` to inspect
+the candidates before running one.
+
 ## How do I provide the snapshot?
 
 **You:** "how do you want me to provide the snapshot?"

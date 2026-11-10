@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "source": {
-    "generated_at": "2026-11-10T13:29:29Z",
+    "generated_at": "2026-11-10T16:44:02Z",
     "batfish_host": "192.168.2.4",
     "pybatfish_version": "2026.9.17.3748",
     "question_templates": "bf.q.<fun>.template from the live coordinator",
@@ -1543,6 +1543,9 @@
         "VRRP groups",
         "virtual router",
         "redundant gateway",
+        "standby gateway",
+        "master gateway",
+        "backup gateway",
         "first-hop redundancy"
       ],
       "differential": false,
@@ -1853,7 +1856,8 @@
         "BGP compatibility",
         "why is BGP down",
         "BGP misconfiguration",
-        "BGP session mismatch"
+        "BGP session mismatch",
+        "BGP adjacency problem"
       ],
       "differential": false,
       "inputs": {
@@ -2037,7 +2041,10 @@
         "BGP neighbor status",
         "BGP session up/down",
         "BGP established",
-        "show ip bgp summary"
+        "show ip bgp summary",
+        "are routers exchanging routes",
+        "BGP route exchange",
+        "routers exchanging routes"
       ],
       "differential": false,
       "inputs": {
@@ -2252,7 +2259,10 @@
       "synonyms": [
         "OSPF compatibility",
         "why is OSPF adjacency down",
-        "OSPF mismatch"
+        "OSPF mismatch",
+        "are routers exchanging routes",
+        "OSPF route exchange",
+        "routers exchanging routes"
       ],
       "differential": false,
       "inputs": {
@@ -2640,7 +2650,9 @@
         "routing table",
         "RIB",
         "show ip route",
-        "all routes"
+        "all routes",
+        "routing changes",
+        "routes before and after"
       ],
       "differential": false,
       "inputs": {
@@ -3911,7 +3923,9 @@
         "shadowed ACL lines",
         "unreachable firewall rules",
         "redundant ACL lines",
-        "dead filter lines"
+        "dead filter lines",
+        "rule that never matches",
+        "impossible firewall rule"
       ],
       "differential": false,
       "inputs": {
@@ -3983,7 +3997,9 @@
         "find ACL match",
         "which flows hit a rule",
         "search filters",
-        "filter flow search"
+        "filter flow search",
+        "which rule blocks a flow",
+        "firewall rule match"
       ],
       "differential": false,
       "inputs": {
@@ -4129,7 +4145,10 @@
         "is traffic allowed",
         "ACL permit/deny test",
         "does a filter permit this flow",
-        "test ACL"
+        "test ACL",
+        "why is traffic blocked",
+        "firewall blocking traffic",
+        "is this connection allowed"
       ],
       "differential": false,
       "inputs": {
@@ -4249,7 +4268,8 @@
       "synonyms": [
         "which ACL line matches",
         "matching filter lines",
-        "trace flow to rule"
+        "trace flow to rule",
+        "which firewall rule matches"
       ],
       "differential": false,
       "inputs": {

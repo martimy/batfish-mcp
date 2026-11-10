@@ -322,6 +322,86 @@ def test_static_metadata_covers_the_catalog_and_has_no_gaps():
 
 
 
+# ------------------------------------------------------------ question search
+def _search_funs(query, limit=5):
+    result = server.batfish_find_questions(query, limit=limit)
+    return [entry["fun"] for entry in result["results"]]
+
+
+def test_find_questions_maps_plain_language_to_catalog_entries():
+    clear_session()
+
+    standby = _search_funs("standby gateway")
+    assert {"hsrpProperties", "vrrpProperties"} <= set(standby[:2])
+
+    assert _search_funs("traffic going in circles")[0] == "detectLoops"
+    assert _search_funs("routing table")[0] == "routes"
+    assert _search_funs("duplicate IP address")[0] == "ipOwners"
+    assert (
+        _search_funs("which firewall rule is blocking this connection")[0]
+        == "testFilters"
+    )
+    assert (
+        _search_funs("are any firewall rules impossible to hit")[0]
+        == "filterLineReachability"
+    )
+
+    sessions = _search_funs("are the routers exchanging routes")
+    assert {"bgpSessionStatus", "ospfSessionCompatibility"} <= set(
+        sessions[:2]
+    )
+
+
+def test_find_questions_returns_explainable_compact_results():
+    clear_session()
+    result = server.batfish_find_questions("BGP session not established")
+
+    assert result["query"] == "BGP session not established"
+    assert result["count"] == len(result["results"])
+    assert result["total_matches"] >= result["count"]
+
+    top = result["results"][0]
+    assert top["fun"] == "bgpSessionStatus"
+    assert set(top) == {
+        "fun",
+        "name",
+        "category",
+        "description",
+        "tags",
+        "synonyms",
+        "supports_differential",
+        "differential_only",
+        "score",
+        "matched_on",
+    }
+    assert top["score"] > 0
+    assert top["matched_on"]
+    assert top["supports_differential"] is True
+    assert top["differential_only"] is False
+
+
+def test_find_questions_limit_and_validation():
+    clear_session()
+    limited = server.batfish_find_questions("filter", limit=2)
+    assert len(limited["results"]) == 2
+
+    with pytest.raises(ValueError, match="query must not be empty"):
+        server.batfish_find_questions("   ")
+    with pytest.raises(ValueError, match="limit must be at least 1"):
+        server.batfish_find_questions("filter", limit=0)
+
+
+def test_find_questions_unknown_query_returns_empty_results():
+    clear_session()
+    result = server.batfish_find_questions("zzzz_unfindable_zzzz")
+    assert result == {
+        "query": "zzzz_unfindable_zzzz",
+        "count": 0,
+        "total_matches": 0,
+        "results": [],
+    }
+
+
 # ------------------------------------------------------------------ snapshots
 def test_list_and_upload_snapshot(fake):
     assert server.batfish_list_snapshots() == ["snapA", "snapB"]
@@ -545,6 +625,7 @@ def test_tools_round_trip_over_the_mcp_wire(fake):
             names = [t.name for t in await client.list_tools()]
             assert "batfish_run_question" in names
             assert "batfish_get_question" in names
+            assert "batfish_find_questions" in names
             response = await client.call_tool(
                 "batfish_run_question", {"fun": "nodeProperties", "snapshot": "snapA"}
             )

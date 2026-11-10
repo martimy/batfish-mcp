@@ -194,12 +194,13 @@ behind it. Before loading real configs:
 
 ## Tools
 
-The server provides 10 tools. `batfish_run_question` gives access to the full
+The server provides 11 tools. `batfish_run_question` gives access to the full
 60-question catalog.
 
 | Tool | Description |
 |---|---|
 | `batfish_list_questions(category?)` | The 60-question curated catalog. Each entry includes a one-line `description`, `tags`, `synonyms`, output column names, `category_description`, input `required` flags, `TYPE_HINTS` details (`hint`, `fields`, `placeholder`, `example`), and `supports_differential`/`differential_only`. No Batfish server needed. |
+| `batfish_find_questions(query, limit?)` | Plain-language search over names, descriptions, categories, tags, synonyms, inputs, allowed values, and output columns. Returns ranked matches with `score` and `matched_on`. No Batfish server needed. |
 | `batfish_get_question(fun)` | Full metadata for one question: long description, typed `output_columns` (`{name, type, description}`), input descriptions/defaults/allowed values/`field_specs`, tags, and synonyms. No Batfish server needed. |
 | `batfish_list_snapshots(network?)` | Snapshots of a network. |
 | `batfish_upload_snapshot(name, zip_base64, network?, overwrite?)` | Upload a snapshot zip (base64). The name is sanitized (`safe_snapshot_name`); collisions are made unique (`name_1`, ...). |
@@ -225,8 +226,13 @@ from live Batfish question templates, the `questions/Parameters.md` specifier
 documentation, and the official docs notebooks by
 `scripts/generate_question_metadata.py`; `scripts/extract_output_columns.py`
 refreshes the docs-derived columns. The server loads this file once, so
-`batfish_list_questions` and `batfish_get_question` work without a Batfish
-server.
+`batfish_list_questions`, `batfish_find_questions`, and `batfish_get_question`
+work without a Batfish server.
+
+The server's MCP `instructions` include a decision tree for discovery. For
+ambiguous requests, use `batfish_find_questions` first (for example
+`"standby gateway"`, `"traffic going in circles"`, or `"which firewall rule is
+blocking"`), then `batfish_get_question` to inspect the candidates.
 
 Tools that read a snapshot verify it exists before calling Batfish, so a typo
 fails immediately with a message such as
@@ -240,6 +246,7 @@ For reference, this is roughly what the assistant calls when you ask the
 
 ```
 batfish_list_questions(category="Packet Forwarding")
+batfish_find_questions(query="standby gateway")
 batfish_get_question(fun="traceroute")
 batfish_upload_snapshot(name="abc_net.zip", zip_base64="UEsDBB==", network="NETWORK")
 batfish_run_question(fun="nodeProperties", snapshot="abc_net")
