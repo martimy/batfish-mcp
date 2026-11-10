@@ -209,7 +209,7 @@ The server provides 12 tools. `batfish_run_question` gives access to the full
 | `batfish_list_assertions()` | Live pybatfish assertion names plus the 16-entry registry (`specs`) with parameter descriptions. |
 | `batfish_run_assertion(name, params?, question?, snapshot?, network?, debug?)` | Validate and run one assertion (answer-based ones fetch the answer first). Returns `{type, status, message, snapshot, ran_at, runtime, fun?, answer_rows?, code?}`. |
 | `batfish_run_assertion_suite(suite_yaml, snapshot?, network?, debug?)` | Validate (all-or-nothing) and run a YAML suite; `examples/assertions.yaml` shows the schema. Returns `results[]`, `errors[]`, `summary`. |
-| `batfish_fork_snapshot(base_name, name?, failed_nodes?, failed_interfaces?, overwrite?, network?)` | Fork a snapshot, optionally failing nodes or interfaces, then diff the fork against the base with a differential question. |
+| `batfish_fork_snapshot(base_name, name?, failed_nodes?, failed_interfaces?, overwrite?, network?)` | Fork a snapshot, optionally failing nodes or interfaces, then diff the fork against the base with a differential question. `failed_interfaces` accepts `node[interface]` strings such as `"r1[Gi0/0]"` or `{hostname, interface}` mappings. |
 | `batfish_get_topology(kind, snapshot?, network?)` | `kind="layer3"` (from `layer3Edges`, with interface titles) or `"routing"` (from `bgpEdges`). Returns `{kind, snapshot, node_count, edge_count, nodes, edges}`. |
 
 All tools share one Batfish session (`batfish_mcp.session`, using
@@ -220,6 +220,12 @@ Catalog entries are self-describing: inputs are optional unless marked
 and `example`. Any question with `supports_differential: true` can be run
 with both `snapshot` and `reference_snapshot`; the two `differential_only`
 questions (`compareFilters` and `differentialReachability`) require it.
+
+In a differential answer, `Snapshot_*` columns come from `snapshot` (the
+snapshot under test) and `Reference_*` columns come from
+`reference_snapshot` (the baseline being compared against). For
+`differentialReachability`, the response also includes a `trace_columns`
+mapping so these labels cannot be read backwards.
 
 Per-question descriptions, tags, synonyms, output columns, defaults, and
 allowed values live in the checked-in `question_metadata.json`. It is generated

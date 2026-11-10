@@ -68,6 +68,65 @@ def get_next_item(input_item, item_list):
     return f"{input_item}_1"
 
 
+def parse_interfaces(items):
+    """Normalize interface specs to pybatfish ``Interface`` objects.
+
+    ``items`` may be ``None``, a single spec, or a list. Each spec is either
+    a ``node[interface]`` string (for example ``"r1[Gi0/0]"``) or a mapping
+    with ``hostname`` (or ``node``) and ``interface`` keys. Pybatfish's
+    ``fork_snapshot`` expects ``Interface`` objects, not raw strings.
+
+    Raises ``ValueError`` for a bare node name or any other unsupported value.
+    """
+    if items is None:
+        return None
+
+    from pybatfish.datamodel.primitives import Interface
+
+    if isinstance(items, (str, dict, Interface)):
+        items = [items]
+
+    parsed = []
+    for item in items:
+        if isinstance(item, Interface):
+            parsed.append(item)
+            continue
+
+        if isinstance(item, str):
+            text = item.strip()
+            if text.endswith("]") and "[" in text:
+                hostname, _, interface = text[:-1].rpartition("[")
+                hostname, interface = hostname.strip(), interface.strip()
+                if hostname and interface:
+                    parsed.append(Interface(hostname=hostname, interface=interface))
+                    continue
+        elif isinstance(item, dict):
+            hostname = item.get("hostname", item.get("node"))
+            interface = item.get("interface")
+            if (
+                isinstance(hostname, str)
+                and hostname.strip()
+                and isinstance(interface, str)
+                and interface.strip()
+            ):
+                parsed.append(
+                    Interface(
+                        hostname=hostname.strip(),
+                        interface=interface.strip(),
+                    )
+                )
+                continue
+
+        raise ValueError(
+            f"Invalid interface specifier {item!r}: expected 'node[interface]' "
+            "(for example 'r1[Gi0/0]') or "
+            "{'hostname': 'r1', 'interface': 'Gi0/0'}; "
+            "use failed_nodes for node-level failures."
+        )
+
+    return parsed
+
+
 MAX_NAME_LENGTH = 100  # Batfish allows 150; stay well inside it
 
 

@@ -110,7 +110,9 @@ Decision guide:
 - Need to debug a specifier? resolve*.
 - Need to compare snapshots? Any question with `supports_differential: true` can
   run with both `snapshot` and `reference_snapshot`; compareFilters and
-  differentialReachability are differential-only.
+  differentialReachability are differential-only. In a differential answer,
+  `Snapshot_*` columns come from `snapshot` (the snapshot under test) and
+  `Reference_*` columns come from `reference_snapshot` (the baseline).
 
 If two questions still fit, say so and explain the difference rather than
 guessing. Pass `network` on the first call if the server has no network set.
@@ -144,6 +146,14 @@ def _serialize_answer(answer: Any, fun: str, snapshot: Optional[str],
         "status": status,
         "rows": [],
     }
+    if fun == "differentialReachability" and reference_snapshot is not None:
+        # The Batfish column names do not say which argument each side came
+        # from. Make the mapping explicit so the answer cannot be read
+        # backwards.
+        base["trace_columns"] = {
+            "Snapshot_Traces": snapshot,
+            "Reference_Traces": reference_snapshot,
+        }
     if answer is None or not answer:
         return base
 
@@ -818,16 +828,22 @@ def batfish_run_question(
     - ``snapshot`` runs the question on that snapshot (the session's
       current snapshot otherwise).
     - ``reference_snapshot`` + ``snapshot`` runs a differential question
-      comparing the two; both are required for differential questions.
+      comparing the two; both are required for differential questions. In the
+      answer, ``Snapshot_*`` columns come from ``snapshot`` (the snapshot
+      under test) and ``Reference_*`` columns come from ``reference_snapshot``
+      (the baseline).
     - ``network`` points the session at a network first, if given.
     - ``debug=True`` includes the raw Batfish exception log in the response.
     - A named ``snapshot``/``reference_snapshot`` must exist in the network;
       otherwise a ``ValueError`` lists the available snapshots.
 
     Returns ``{fun, snapshot, reference_snapshot, status, rows,
-    removed_columns}`` where ``rows`` is a list of row dicts. A Batfish failure
-    returns ``{status: "error", code, message, rows: []}`` instead of raising;
-    known codes include ``SNAPSHOT_INCOMPATIBLE``, ``INVALID_ARGUMENT``,
+    removed_columns}`` where ``rows`` is a list of row dicts. A
+    ``differentialReachability`` answer also includes ``trace_columns``, which
+    maps ``Snapshot_Traces`` to the ``snapshot`` argument and
+    ``Reference_Traces`` to ``reference_snapshot``. A Batfish failure returns
+    ``{status: "error", code, message, rows: []}`` instead of raising; known
+    codes include ``SNAPSHOT_INCOMPATIBLE``, ``INVALID_ARGUMENT``,
     ``INVALID_PORT_SPEC``, and ``BIDIRECTIONAL_REQUIRES_DST``.
 
     Header values are Batfish specifiers: ``srcIps``/``dstIps`` accept IPs,
@@ -1139,9 +1155,13 @@ def batfish_fork_snapshot(
       defaults to ``<base>_Fail``. Unless ``overwrite`` is true, an
       existing name is kept and a unique one is chosen
       (``name``, ``name_1``, ...).
-    - ``failed_nodes`` / ``failed_interfaces``: names to deactivate in
-      the fork (failure-testing flow: fork, then diff the
-      fork against the base with a differential question).
+    - ``failed_nodes``: node names to deactivate in the fork.
+    - ``failed_interfaces``: interfaces to deactivate, each as a
+      ``node[interface]`` string (for example ``"r1[Gi0/0]"``) or as a
+      ``{"hostname": "r1", "interface": "Gi0/0"}`` mapping. Bare node names
+      are rejected; use ``failed_nodes`` for those.
+    - The failure-testing flow is: fork, then diff the fork against the base
+      with a differential question.
     - ``network``: the network both snapshots live in, if given.
 
     Returns ``{name, base_name}`` — the name actually used.

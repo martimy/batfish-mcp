@@ -103,6 +103,26 @@ def test_fork_snapshot_custom_name_and_no_overwrite(bf):
     assert bf.forks[-1]["overwrite"] is False
 
 
+def test_fork_snapshot_normalizes_failed_interfaces(bf):
+    from pybatfish.datamodel.primitives import Interface
+
+    Q.fork_snapshot(
+        "snap1",
+        failed_interfaces=[
+            "r1[Gi0/0]",
+            {"hostname": "r2", "interface": "Gi0/1"},
+        ],
+    )
+    sent = bf.forks[-1]["deactivate_interfaces"]
+    assert all(isinstance(item, Interface) for item in sent)
+    assert [str(item) for item in sent] == ["r1[Gi0/0]", "r2[Gi0/1]"]
+
+
+def test_fork_snapshot_rejects_bare_interface_node(bf):
+    with pytest.raises(ValueError, match=r"node\[interface\]"):
+        Q.fork_snapshot("snap1", failed_interfaces=["r1"])
+
+
 # ---------------------------------------------------------------- run_query
 def test_run_query_without_options(bf):
     answer = Q.run_query({"fun": "nodeProperties"})

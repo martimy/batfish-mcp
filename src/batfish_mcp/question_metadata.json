@@ -5268,22 +5268,22 @@
         {
           "name": "Snapshot_Traces",
           "type": "Set of Trace",
-          "description": "The traces in the BASE snapshot"
+          "description": "The traces in the snapshot argument (the snapshot under test)."
         },
         {
           "name": "Snapshot_TraceCount",
           "type": "int",
-          "description": "The total number traces in the BASE snapshot"
+          "description": "The total number of traces in the snapshot argument."
         },
         {
           "name": "Reference_Traces",
           "type": "Set of Trace",
-          "description": "The traces in the DELTA snapshot"
+          "description": "The traces in reference_snapshot (the baseline being compared against)."
         },
         {
           "name": "Reference_TraceCount",
           "type": "int",
-          "description": "The total number traces in the DELTA snapshot"
+          "description": "The total number of traces in reference_snapshot."
         }
       ]
     }

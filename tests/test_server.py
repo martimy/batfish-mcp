@@ -194,6 +194,18 @@ def test_get_question_returns_full_metadata():
     assert inputs["headers"]["fields"]  # TYPE_HINTS still present
 
 
+def test_differential_reachability_labels_match_arguments():
+    clear_session()
+    question = server.batfish_get_question("differentialReachability")
+    columns = {c["name"]: c["description"] for c in question["output_columns"]}
+
+    assert "snapshot argument" in columns["Snapshot_Traces"]
+    assert "snapshot argument" in columns["Snapshot_TraceCount"]
+    assert "reference_snapshot" in columns["Reference_Traces"]
+    assert "reference_snapshot" in columns["Reference_TraceCount"]
+    assert all("BASE" not in text and "DELTA" not in text for text in columns.values())
+
+
 def test_get_question_exposes_defaults_and_allowed_values():
     clear_session()
     routes = server.batfish_get_question("routes")
@@ -442,6 +454,21 @@ def test_run_question_differential_and_validation(fake):
     }
     with pytest.raises(ValueError, match="reference_snapshot requires snapshot"):
         server.batfish_run_question(fun="nodeProperties", reference_snapshot="snapA")
+
+
+def test_differential_reachability_maps_trace_columns(fake):
+    result = server.batfish_run_question(
+        fun="differentialReachability",
+        snapshot="snapB",
+        reference_snapshot="snapA",
+    )
+    assert result["trace_columns"] == {
+        "Snapshot_Traces": "snapB",
+        "Reference_Traces": "snapA",
+    }
+
+    single = server.batfish_run_question(fun="differentialReachability", snapshot="snapB")
+    assert "trace_columns" not in single
 
 
 def test_run_question_serializes_tuples_and_nan():
@@ -781,6 +808,23 @@ def test_fork_snapshot_custom_and_failures(fake):
     assert ("set_network", "OTHER") in fake.calls
     call = fake.calls_named("fork_snapshot")[-1][1]
     assert call["deactivate_nodes"] == ["r1"]
+
+
+def test_fork_snapshot_normalizes_failed_interfaces(fake):
+    from pybatfish.datamodel.primitives import Interface
+
+    result = server.batfish_fork_snapshot(
+        base_name="snapA",
+        failed_interfaces=[
+            "r1[Gi0/0]",
+            {"hostname": "r2", "interface": "Gi0/1"},
+        ],
+    )
+    assert result["name"] == "snapA_Fail"
+    call = fake.calls_named("fork_snapshot")[-1][1]
+    sent = call["deactivate_interfaces"]
+    assert all(isinstance(item, Interface) for item in sent)
+    assert [str(item) for item in sent] == ["r1[Gi0/0]", "r2[Gi0/1]"]
 
 
 def test_topology_layer3_and_routing(topo_fake):

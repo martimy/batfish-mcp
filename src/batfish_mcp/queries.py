@@ -16,6 +16,7 @@ limitations under the License.
 """
 
 from .session import get_session
+from .utils import parse_interfaces
 
 
 def get_node_properties():
@@ -51,7 +52,7 @@ def fork_snapshot(
         base_name=active_snapshot,
         name=final_name,
         deactivate_nodes=failed_nodes,
-        deactivate_interfaces=failed_interfaces,
+        deactivate_interfaces=parse_interfaces(failed_interfaces),
         overwrite=overwrite,
     )
     return final_name

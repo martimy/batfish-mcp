@@ -56,6 +56,38 @@ PAGES = [
     "differentialQuestions",
 ]
 
+# The Batfish docs notebook calls these columns BASE/DELTA, but pybatfish's
+# answer(snapshot=..., reference_snapshot=...) maps Snapshot_* to the
+# ``snapshot`` argument and Reference_* to the ``reference_snapshot`` argument.
+# Keep the descriptions tied to the public tool arguments so a differential
+# result cannot be read backwards.
+COLUMN_DESCRIPTION_OVERRIDES = {
+    "differentialReachability": {
+        "Snapshot_Traces": (
+            "The traces in the snapshot argument (the snapshot under test)."
+        ),
+        "Snapshot_TraceCount": (
+            "The total number of traces in the snapshot argument."
+        ),
+        "Reference_Traces": (
+            "The traces in reference_snapshot (the baseline being compared "
+            "against)."
+        ),
+        "Reference_TraceCount": (
+            "The total number of traces in reference_snapshot."
+        ),
+    },
+}
+
+
+def apply_column_overrides(columns: dict[str, list[dict]]) -> None:
+    """Replace docs wording that contradicts the public argument names."""
+    for fun, overrides in COLUMN_DESCRIPTION_OVERRIDES.items():
+        for column in columns.get(fun, []):
+            description = overrides.get(column.get("name", ""))
+            if description is not None:
+                column["description"] = description
+
 
 def fetch_notebook(page: str) -> dict:
     url = f"{DOCS_BASE}{page}.ipynb.txt"
@@ -131,6 +163,7 @@ def main() -> None:
     for page in PAGES:
         columns.update(parse_page(fetch_notebook(page)))
 
+    apply_column_overrides(columns)
     missing = sorted(catalog_funs - set(columns))
     result = {fun: columns.get(fun, []) for fun in sorted(catalog_funs)}
     out_path = ROOT / "scripts" / "output_columns.json"
