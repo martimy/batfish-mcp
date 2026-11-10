@@ -84,6 +84,58 @@ def test_list_questions_without_a_server():
     assert server.batfish_list_questions(category="No such category") == []
 
 
+def test_list_questions_exposes_p0_metadata():
+    clear_session()
+    questions = server.batfish_list_questions()
+    by_fun = {q["fun"]: q for q in questions}
+
+    reachability = by_fun["reachability"]
+    assert reachability["category_description"]
+    assert reachability["supports_differential"] is True
+    assert reachability["differential_only"] is False
+    headers = next(i for i in reachability["inputs"] if i["name"] == "headers")
+    assert headers["required"] is False
+    assert headers["fields"] and headers["placeholder"] and headers["example"]
+
+    traceroute = {i["name"]: i for i in by_fun["traceroute"]["inputs"]}
+    assert traceroute["startLocation"]["required"] is True
+    assert traceroute["headers"]["required"] is True
+    assert traceroute["maxTraces"]["required"] is False
+
+    compare = by_fun["compareFilters"]
+    assert compare["supports_differential"] is True
+    assert compare["differential_only"] is True
+    assert compare["type"] == "differential"
+
+    aggregate = next(
+        i for i in by_fun["parseWarning"]["inputs"]
+        if i["name"] == "aggregateDuplicates"
+    )
+    assert aggregate["type"] == "bool"
+    assert aggregate["placeholder"] == "True / False"
+
+    matching = next(
+        i for i in by_fun["findMatchingFilterLines"]["inputs"]
+        if i["name"] == "headers"
+    )
+    assert matching["type"] == "HeaderConstraints"
+    assert matching["fields"]
+
+    filtered = server.batfish_list_questions(category="Packet Forwarding")
+    assert len({q["category_description"] for q in filtered}) == 1
+    assert all(
+        q["category_description"] == reachability["category_description"]
+        for q in filtered
+    )
+
+
+def test_server_instructions_guide_question_selection():
+    instructions = server.mcp.instructions
+    assert "batfish_list_questions" in instructions
+    assert "required: true" in instructions
+    assert "reference_snapshot" in instructions
+
+
 # ------------------------------------------------------------------ snapshots
 def test_list_and_upload_snapshot(fake):
     assert server.batfish_list_snapshots() == ["snapA", "snapB"]

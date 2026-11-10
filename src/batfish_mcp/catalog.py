@@ -36,7 +36,8 @@ json_data = r"""
           "fun": "parseWarning",
           "input": [
             {
-              "name": "aggregateDuplicates"
+              "name": "aggregateDuplicates",
+              "type": "bool"
             }
           ],
           "name": "Snapshot Input File Parse Warnings"
@@ -747,7 +748,8 @@ json_data = r"""
               "name": "filters"
             },
             {
-              "name": "headers"
+              "name": "headers",
+              "type": "HeaderConstraints"
             },
             {
               "name": "action"

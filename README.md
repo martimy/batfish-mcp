@@ -199,7 +199,7 @@ The server provides 9 tools. `batfish_run_question` gives access to the full
 
 | Tool | Description |
 |---|---|
-| `batfish_list_questions(category?)` | The 60-question curated catalog, with input types and `TYPE_HINTS` descriptions. No Batfish server needed. |
+| `batfish_list_questions(category?)` | The 60-question curated catalog. Each entry includes `category_description`, input `required` flags, `TYPE_HINTS` details (`hint`, `fields`, `placeholder`, `example`), and `supports_differential`/`differential_only`. No Batfish server needed. |
 | `batfish_list_snapshots(network?)` | Snapshots of a network. |
 | `batfish_upload_snapshot(name, zip_base64, network?, overwrite?)` | Upload a snapshot zip (base64). The name is sanitized (`safe_snapshot_name`); collisions are made unique (`name_1`, ...). |
 | `batfish_run_question(fun, options?, snapshot?, reference_snapshot?, network?)` | Run any catalog question. Giving `reference_snapshot` and `snapshot` runs a differential question. Returns JSON-safe `{fun, snapshot, reference_snapshot, status, rows, removed_columns}`. |
@@ -211,6 +211,12 @@ The server provides 9 tools. `batfish_run_question` gives access to the full
 
 All tools share one Batfish session (`batfish_mcp.session`, using
 `BATFISH_SERVER`, default `127.0.0.1`), serialized with a lock.
+
+Catalog entries are self-describing: inputs are optional unless marked
+`required: true`, and complex values include their `fields`, `placeholder`,
+and `example`. Any question with `supports_differential: true` can be run
+with both `snapshot` and `reference_snapshot`; the two `differential_only`
+questions (`compareFilters` and `differentialReachability`) require it.
 
 ## Tool call examples
 

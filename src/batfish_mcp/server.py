@@ -62,7 +62,39 @@ from .hints import TYPE_HINTS
 from .session import get_session
 from .utils import safe_snapshot_name
 
-mcp = FastMCP("batfish-q-mcp")
+_INSTRUCTIONS = """\
+This server exposes a curated catalog of 60 Batfish questions plus snapshot,
+assertion, topology, and failure-testing tools. Workflow: call
+batfish_list_questions (optionally filtered by category) to choose a question,
+then batfish_run_question with its `fun` and an `options` dict.
+
+Each catalog entry includes a category description, required/optional inputs,
+and structured type metadata (`fields`, `placeholder`, `example`) for complex
+values such as HeaderConstraints. Inputs marked `required: true` must be
+supplied; other inputs may be omitted.
+
+Question selection guide:
+- Snapshot health: initIssues, fileParseStatus, parseWarning.
+- Configuration: nodeProperties, interfaceProperties, *Configuration,
+  *Properties, namedStructures, definedStructures, unusedStructures.
+- Topology: layer3Edges, userProvidedLayer1Edges; or batfish_get_topology.
+- Routing: bgpSessionStatus, bgpSessionCompatibility, ospfSessionCompatibility,
+  routes, bgpRib, lpmRoutes, testRoutePolicies, searchRoutePolicies.
+- Forwarding: traceroute (one source), reachability (successful flows),
+  bidirectionalReachability, detectLoops, *MultipathConsistency.
+- Filters: testFilters (is traffic permitted?), searchFilters (find matches),
+  findMatchingFilterLines, filterLineReachability (unreachable lines).
+- Tunnels/VXLAN: ipsec*, vxlan*, evpn*.
+- Specifier debugging: resolve*.
+- Snapshot differences: any question with `supports_differential: true` can run
+  with both `snapshot` and `reference_snapshot`; compareFilters and
+  differentialReachability are differential-only.
+
+Call batfish_list_snapshots before running questions, and pass `network` on
+the first call if the server has no network set.
+"""
+
+mcp = FastMCP("batfish-q-mcp", instructions=_INSTRUCTIONS)
 
 # Serializes tool calls: the singleton Session is shared state.
 _lock = threading.RLock()
@@ -106,9 +138,19 @@ def _serialize_answer(answer: Any, fun: str, snapshot: Optional[str],
 def batfish_list_questions(category: Optional[str] = None) -> list[dict]:
     """List Batfish questions from the curated catalog.
 
-    Returns one dict per question: ``{category, fun, name, type, inputs}``,
-    where each input is ``{name, type, hint}`` (``hint`` comes from
-    TYPE_HINTS and describes complex types like HeaderConstraints).
+    Returns one dict per question:
+    ``{category, category_description, fun, name, supports_differential,
+    differential_only, inputs, type?}``. Each input is ``{name, type,
+    required, hint?, fields?, placeholder?, example?}``.
+
+    - ``required`` is true unless the catalog marks the input optional.
+    - ``hint``/``fields``/``placeholder``/``example`` come from TYPE_HINTS
+      and describe complex types such as HeaderConstraints.
+    - ``supports_differential`` is true when the question accepts a
+      ``reference_snapshot``. ``differential_only`` marks the two questions
+      (``compareFilters`` and ``differentialReachability``) that can only be
+      run differentially; ``type`` is retained on those entries.
+
     Pass a category name to filter; omit it for the full catalog.
     """
     questions = []
@@ -119,15 +161,24 @@ def batfish_list_questions(category: Optional[str] = None) -> list[dict]:
             inputs = []
             for inp in q.get("input") or []:
                 in_type = inp.get("type", "str")
-                entry = {"name": inp["name"], "type": in_type}
-                hints = TYPE_HINTS.get(in_type)
-                if hints:
-                    entry["hint"] = hints["hint"]
+                entry = {
+                    "name": inp["name"],
+                    "type": in_type,
+                    "required": not inp.get("optional", True),
+                }
+                entry.update(TYPE_HINTS.get(in_type, {}))
                 inputs.append(entry)
+            differential_only = q.get("type") == "differential"
+            # Batfish docs say most questions can run differentially and two
+            # are differential-only. The catalog has no per-question exclusion
+            # list, so every question is advertised as differential-capable.
             entry = {
                 "category": cat["category"],
+                "category_description": cat.get("description", ""),
                 "fun": q["fun"],
                 "name": q["name"],
+                "supports_differential": True,
+                "differential_only": differential_only,
                 "inputs": inputs,
             }
             if q.get("type"):
