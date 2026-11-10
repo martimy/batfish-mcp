@@ -132,7 +132,11 @@ ASSERTION_SPECS = {
     },
     "assert_filter_permits": {
         "label": "Filter permits flows",
-        "description": "The selected filters permit the described flows.",
+        "description": (
+            "The selected filters permit the described flows. If ipProtocols "
+            "is omitted, Batfish tests ICMP; set ipProtocols and dstPorts for "
+            "service-level checks."
+        ),
         "group": "Filters",
         "phase": 2,
         "source": "pybatfish",
@@ -145,7 +149,11 @@ ASSERTION_SPECS = {
     },
     "assert_filter_denies": {
         "label": "Filter denies flows",
-        "description": "The selected filters deny the described flows.",
+        "description": (
+            "The selected filters deny the described flows. If ipProtocols "
+            "is omitted, Batfish tests ICMP; set ipProtocols and dstPorts for "
+            "service-level checks."
+        ),
         "group": "Filters",
         "phase": 2,
         "source": "pybatfish",
@@ -159,7 +167,10 @@ ASSERTION_SPECS = {
     # ---- Reachability ---------------------------------------------------
     "assert_flows_succeed": {
         "label": "Flows succeed",
-        "description": "The described flows succeed.",
+        "description": (
+            "The described flows succeed. If ipProtocols is omitted, Batfish "
+            "tests ICMP; set ipProtocols and dstPorts for service-level checks."
+        ),
         "group": "Reachability",
         "phase": 2,
         "source": "pybatfish",
@@ -171,7 +182,10 @@ ASSERTION_SPECS = {
     },
     "assert_flows_fail": {
         "label": "Flows fail",
-        "description": "The described flows fail.",
+        "description": (
+            "The described flows fail. If ipProtocols is omitted, Batfish "
+            "tests ICMP; set ipProtocols and dstPorts for service-level checks."
+        ),
         "group": "Reachability",
         "phase": 2,
         "source": "pybatfish",

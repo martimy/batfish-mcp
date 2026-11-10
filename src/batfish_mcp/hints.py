@@ -23,16 +23,58 @@ build e.g. ``HeaderConstraints`` dicts).
 
 TYPE_HINTS = {
     "HeaderConstraints": {
-        "hint": "Dictionary / JSON object of packet header constraints.",
-        "placeholder": "{'dstIps': '8.8.8.8', 'srcIps': '10.0.0.1'}",
-        "example": "{'dstIps': '8.8.8.8', 'applications': ['HTTP']}",
+        "hint": (
+            "Dictionary / JSON object of packet header constraints. "
+            "srcIps/dstIps accept IPs, prefixes, node names, interfaces, or "
+            "named IP spaces. srcPorts/dstPorts accept string port specs such "
+            "as '443' or '80,443' (numeric JSON values are invalid). If "
+            "ipProtocols is omitted, Batfish tests ICMP."
+        ),
+        "placeholder": "{'dstIps': 'server_2', 'srcIps': 'server_1'}",
+        "example": (
+            "{'dstIps': '8.8.8.8', 'ipProtocols': ['TCP'], "
+            "'dstPorts': '443'}"
+        ),
         "fields": "srcIps, dstIps, srcPorts, dstPorts, ipProtocols, applications, icmpCodes, icmpTypes, tcpFlags",
+        "field_types": {
+            "srcIps": "ipSpaceSpec (IP, prefix, node name, interface, or named IP space)",
+            "dstIps": "ipSpaceSpec (IP, prefix, node name, interface, or named IP space)",
+            "srcPorts": "string port spec, e.g. '443' or '80,443'",
+            "dstPorts": "string port spec, e.g. '443' or '80,443'",
+            "ipProtocols": "list of protocol names, e.g. ['TCP', 'ICMP']",
+        },
     },
     "PathConstraints": {
-        "hint": "Dictionary / JSON object of path routing constraints.",
-        "placeholder": "{'startLocation': 'node1', 'endLocation': 'node2'}",
+        "hint": (
+            "Dictionary / JSON object of path routing constraints. Locations "
+            "are node names, interfaces, or location specifiers."
+        ),
+        "placeholder": "{'startLocation': 'server_1', 'endLocation': 'server_2'}",
         "example": "{'startLocation': 'as1border1', 'endLocation': 'as2border1'}",
         "fields": "startLocation, endLocation, transitLocations, forbiddenLocations",
+    },
+    "int": {
+        "hint": "Integer value.",
+        "placeholder": "1",
+        "example": "10",
+    },
+    "str": {
+        "hint": "String value.",
+        "placeholder": "value",
+        "example": "value",
+    },
+    "IpSpaceSpec": {
+        "hint": (
+            "Batfish IP space specifier: an IP, prefix, node name, interface, "
+            "or named IP space."
+        ),
+        "placeholder": "server_2 or 10.0.0.0/24",
+        "example": "server_2",
+    },
+    "InterfaceSpec": {
+        "hint": "Batfish interface specifier: interface name, node[interface], or regex.",
+        "placeholder": "r1[Gi0/0] or Gi0/0",
+        "example": "r1[Gi0/0]",
     },
     "BgpRoute": {
         "hint": "Dictionary or list of dictionaries defining BGP route attributes.",

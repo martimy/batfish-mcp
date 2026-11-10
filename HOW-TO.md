@@ -219,6 +219,25 @@ await tools["batfish-q-mcp"].batfish_run_question({
 
 > To re-test with a public IP, use `dstIps: "8.8.8.8"` instead of `240.254.254.1`. Both `traceroute` and `bidirectionalTraceroute` work this way.
 
+## Header and option gotchas
+
+- **Node names work in `srcIps` / `dstIps`.** A node name resolves to that
+  node's addresses, so `{ srcIps: "server_1", dstIps: "server_2" }` is valid.
+- **Ports are strings.** Use `dstPorts: "443"` or `dstPorts: "80,443"`; a
+  numeric value such as `dstPorts: 443` is rejected.
+- **`maxTraces` is an integer**, not a string.
+- **The default protocol is ICMP.** If a header has no `ipProtocols`, Batfish
+  tests ICMP. For a service test, be explicit:
+  `headers: { dstIps: "8.8.8.8", ipProtocols: ["TCP"], dstPorts: "443" }`.
+  This applies to `assert_flows_succeed` / `assert_flows_fail` too.
+- **`bidirectionalReachability` needs `dstIps`.** Without it Batfish fails
+  while setting up reverse-flow transformations; the server returns a
+  structured `BIDIRECTIONAL_REQUIRES_DST` error instead.
+- **`reachability` returns examples**, not every reachable destination. Use
+  `traceroute` for one destination or query per pair to build a matrix.
+- **Question failures are structured.** Batfish errors come back as
+  `{ status: "error", code, message }`; pass `debug: true` to see the raw log.
+
 
 ## Quick reference cheat-sheet
 

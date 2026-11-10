@@ -582,7 +582,8 @@ json_data = r"""
               "type": "HeaderConstraints"
             },
             {
-              "name": "maxTraces"
+              "name": "maxTraces",
+              "type": "int"
             },
             {
               "name": "ignoreFilters"
@@ -603,7 +604,8 @@ json_data = r"""
               "type": "HeaderConstraints"
             },
             {
-              "name": "maxTraces"
+              "name": "maxTraces",
+              "type": "int"
             },
             {
               "name": "ignoreFilters"
@@ -626,7 +628,8 @@ json_data = r"""
               "name": "actions"
             },
             {
-              "name": "maxTraces"
+              "name": "maxTraces",
+              "type": "int"
             },
             {
               "name": "invertSearch"
@@ -659,7 +662,8 @@ json_data = r"""
           "fun": "detectLoops",
           "input": [
             {
-              "name": "maxTraces"
+              "name": "maxTraces",
+              "type": "int"
             }
           ],
           "name": "Loop Detection"
@@ -668,7 +672,8 @@ json_data = r"""
           "fun": "subnetMultipathConsistency",
           "input": [
             {
-              "name": "maxTraces"
+              "name": "maxTraces",
+              "type": "int"
             }
           ],
           "name": "Multipath Consistency for host-subnets"
@@ -677,7 +682,8 @@ json_data = r"""
           "fun": "loopbackMultipathConsistency",
           "input": [
             {
-              "name": "maxTraces"
+              "name": "maxTraces",
+              "type": "int"
             }
           ],
           "name": "Multipath Consistency for router loopbacks"
@@ -987,7 +993,8 @@ json_data = r"""
               "name": "actions"
             },
             {
-              "name": "maxTraces"
+              "name": "maxTraces",
+              "type": "int"
             },
             {
               "name": "invertSearch"

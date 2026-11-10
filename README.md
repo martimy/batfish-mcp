@@ -194,7 +194,7 @@ behind it. Before loading real configs:
 
 ## Tools
 
-The server provides 11 tools. `batfish_run_question` gives access to the full
+The server provides 12 tools. `batfish_run_question` gives access to the full
 60-question catalog.
 
 | Tool | Description |
@@ -203,11 +203,12 @@ The server provides 11 tools. `batfish_run_question` gives access to the full
 | `batfish_find_questions(query, limit?)` | Plain-language search over names, descriptions, categories, tags, synonyms, inputs, allowed values, and output columns. Returns ranked matches with `score` and `matched_on`. No Batfish server needed. |
 | `batfish_get_question(fun)` | Full metadata for one question: long description, typed `output_columns` (`{name, type, description}`), input descriptions/defaults/allowed values/`field_specs`, tags, and synonyms. No Batfish server needed. |
 | `batfish_list_snapshots(network?)` | Snapshots of a network. |
+| `batfish_delete_snapshot(name, network?)` | Delete a snapshot; verifies it exists first. |
 | `batfish_upload_snapshot(name, zip_base64, network?, overwrite?)` | Upload a snapshot zip (base64). The name is sanitized (`safe_snapshot_name`); collisions are made unique (`name_1`, ...). |
-| `batfish_run_question(fun, options?, snapshot?, reference_snapshot?, network?)` | Run any catalog question. Giving `reference_snapshot` and `snapshot` runs a differential question. Returns JSON-safe `{fun, snapshot, reference_snapshot, status, rows, removed_columns}`. |
+| `batfish_run_question(fun, options?, snapshot?, reference_snapshot?, network?, debug?)` | Run any catalog question. Giving `reference_snapshot` and `snapshot` runs a differential question. Returns JSON-safe `{fun, snapshot, reference_snapshot, status, rows, removed_columns}`; Batfish failures return `{status: "error", code, message}` (set `debug=true` for the raw log). |
 | `batfish_list_assertions()` | Live pybatfish assertion names plus the 16-entry registry (`specs`) with parameter descriptions. |
-| `batfish_run_assertion(name, params?, question?, snapshot?, network?)` | Validate and run one assertion (answer-based ones fetch the answer first). Returns `{type, status, message, snapshot, ran_at, runtime, fun?, answer_rows?}`. |
-| `batfish_run_assertion_suite(suite_yaml, snapshot?, network?)` | Validate (all-or-nothing) and run a YAML suite; `examples/assertions.yaml` shows the schema. Returns `results[]`, `errors[]`, `summary`. |
+| `batfish_run_assertion(name, params?, question?, snapshot?, network?, debug?)` | Validate and run one assertion (answer-based ones fetch the answer first). Returns `{type, status, message, snapshot, ran_at, runtime, fun?, answer_rows?, code?}`. |
+| `batfish_run_assertion_suite(suite_yaml, snapshot?, network?, debug?)` | Validate (all-or-nothing) and run a YAML suite; `examples/assertions.yaml` shows the schema. Returns `results[]`, `errors[]`, `summary`. |
 | `batfish_fork_snapshot(base_name, name?, failed_nodes?, failed_interfaces?, overwrite?, network?)` | Fork a snapshot, optionally failing nodes or interfaces, then diff the fork against the base with a differential question. |
 | `batfish_get_topology(kind, snapshot?, network?)` | `kind="layer3"` (from `layer3Edges`, with interface titles) or `"routing"` (from `bgpEdges`). Returns `{kind, snapshot, node_count, edge_count, nodes, edges}`. |
 
@@ -238,6 +239,31 @@ Tools that read a snapshot verify it exists before calling Batfish, so a typo
 fails immediately with a message such as
 `snapshot 'abc_net' not found in network 'LAN'; available: []` instead of an
 opaque Batfish work-queue error.
+
+Failures raised by Batfish are mapped to concise structured errors, for example
+`{"status": "error", "code": "SNAPSHOT_INCOMPATIBLE", "message":
+"Snapshot was built with an incompatible Batfish version; re-upload it with
+the current Batfish server."}`. Pass `debug: true` to include the raw Java log.
+Other codes include `INVALID_ARGUMENT`, `INVALID_PORT_SPEC`, and
+`BIDIRECTIONAL_REQUIRES_DST`.
+
+Header values use Batfish specifiers:
+
+* `srcIps` / `dstIps` accept literal IPs, prefixes, **node names**,
+  interfaces, or named IP spaces. For example
+  `{"srcIps": "server_1", "dstIps": "server_2"}`.
+* `srcPorts` / `dstPorts` must be **string** specs such as `"443"` or
+  `"80,443"`; numeric JSON values are rejected.
+* `maxTraces` is an **integer**.
+* If `ipProtocols` is omitted, Batfish tests ICMP. For service-level checks
+  set it explicitly, e.g.
+  `{"dstIps": "8.8.8.8", "ipProtocols": ["TCP"], "dstPorts": "443"}`.
+* `bidirectionalReachability` requires `headers.dstIps`; without a destination
+  Batfish fails during reverse-flow transformation setup.
+
+`reachability` returns example flows that satisfy the constraints, not an
+exhaustive source-to-destination matrix. Use `traceroute` for one specific
+destination, or run per-pair queries to build a matrix.
 
 ## Tool call examples
 

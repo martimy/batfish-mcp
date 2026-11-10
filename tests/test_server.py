@@ -30,9 +30,11 @@ import zipfile
 
 import pandas as pd
 import pytest
+from pybatfish.exception import BatfishException
 
 from fakes import FakeAnswer, FakeBatfish, fake_session
 from batfish_mcp import server
+from batfish_mcp.hints import TYPE_HINTS
 from batfish_mcp.session import clear_session, set_session
 
 
@@ -455,6 +457,185 @@ def test_run_question_serializes_tuples_and_nan():
         clear_session()
 
 
+def test_bidirectional_reachability_requires_dst_ips(fake):
+    result = server.batfish_run_question(
+        fun="bidirectionalReachability",
+        options={
+            "pathConstraints": {
+                "startLocation": "server_1",
+                "endLocation": "server_2",
+            },
+            "headers": {},
+        },
+        snapshot="snapA",
+    )
+    assert result["status"] == "error"
+    assert result["code"] == "BIDIRECTIONAL_REQUIRES_DST"
+    assert "dstIps" in result["message"]
+    assert result["rows"] == []
+    assert fake.calls_named("answer") == []  # rejected before queueing
+
+    ok = server.batfish_run_question(
+        fun="bidirectionalReachability",
+        options={
+            "pathConstraints": {
+                "startLocation": "server_1",
+                "endLocation": "server_2",
+            },
+            "headers": {"srcIps": "server_1", "dstIps": "server_2"},
+        },
+        snapshot="snapA",
+    )
+    assert ok["status"] is None
+    assert fake.answers_for("bidirectionalReachability")[-1][0] == {
+        "pathConstraints": {
+            "startLocation": "server_1",
+            "endLocation": "server_2",
+        },
+        "headers": {"srcIps": "server_1", "dstIps": "server_2"},
+    }
+
+
+def test_max_traces_is_an_integer_in_the_catalog():
+    clear_session()
+    questions = server.batfish_list_questions()
+    max_traces = [
+        (question["fun"], inp)
+        for question in questions
+        for inp in question["inputs"]
+        if inp["name"] == "maxTraces"
+    ]
+    assert len(max_traces) == 7
+    assert all(inp["type"] == "int" for _, inp in max_traces)
+
+    for fun, _ in max_traces:
+        inputs = {
+            i["name"]: i
+            for i in server.batfish_get_question(fun)["inputs"]
+        }
+        assert inputs["maxTraces"]["type"] == "int", fun
+        assert inputs["maxTraces"]["hint"] == "Integer value."
+
+
+def test_max_traces_accepts_an_int_and_rejects_a_string(fake):
+    ok = server.batfish_run_question(
+        fun="reachability",
+        options={"maxTraces": 1},
+        snapshot="snapA",
+    )
+    assert ok["status"] is None
+    assert fake.answers_for("reachability")[-1][0] == {"maxTraces": 1}
+
+    bad = server.batfish_run_question(
+        fun="reachability",
+        options={"maxTraces": "1"},
+        snapshot="snapA",
+    )
+    assert bad["status"] == "error"
+    assert bad["code"] == "INVALID_ARGUMENT"
+    assert "must be an integer" in bad["message"]
+    assert len(fake.answers_for("reachability")) == 1  # nothing queued
+
+
+def test_header_hints_document_node_names_and_string_ports():
+    headers = TYPE_HINTS["HeaderConstraints"]
+    assert "node names" in headers["hint"]
+    assert "server_2" in headers["placeholder"]
+    assert "server_1" in headers["placeholder"]
+    assert "'443'" in headers["example"]
+    assert "string port spec" in headers["field_types"]["dstPorts"]
+    assert "ICMP" in headers["hint"]
+
+    paths = TYPE_HINTS["PathConstraints"]
+    assert "node names" in paths["hint"]
+
+
+def test_port_fields_accept_strings_and_reject_numbers(fake):
+    ok = server.batfish_run_question(
+        fun="traceroute",
+        options={
+            "startLocation": "server_1",
+            "headers": {"dstIps": "8.8.8.8", "dstPorts": "443"},
+        },
+        snapshot="snapA",
+    )
+    assert ok["status"] is None
+    assert fake.answers_for("traceroute")[-1][0]["headers"]["dstPorts"] == "443"
+
+    bad = server.batfish_run_question(
+        fun="traceroute",
+        options={
+            "startLocation": "server_1",
+            "headers": {"dstIps": "8.8.8.8", "dstPorts": 443},
+        },
+        snapshot="snapA",
+    )
+    assert bad["status"] == "error"
+    assert bad["code"] == "INVALID_PORT_SPEC"
+    assert "string port spec" in bad["message"]
+    assert len(fake.answers_for("traceroute")) == 1  # nothing queued
+
+
+def test_batfish_errors_become_structured_and_debug_keeps_the_log(fake):
+    log = (
+        "Work terminated abnormally\n"
+        "work_item: ...\n"
+        "Caused by: java.io.InvalidClassException: "
+        "org.batfish.representation.cisco.CiscoConfiguration; "
+        "local class incompatible: stream classdesc serialVersionUID = 1, "
+        "local class serialVersionUID = 2"
+    )
+    fake.answers["initIssues"] = BatfishException(log)
+
+    result = server.batfish_run_question(fun="initIssues", snapshot="snapA")
+    assert result["status"] == "error"
+    assert result["code"] == "SNAPSHOT_INCOMPATIBLE"
+    assert "re-upload" in result["message"]
+    assert "InvalidClassException" not in result["message"]
+    assert "debug" not in result
+
+    debug = server.batfish_run_question(
+        fun="initIssues", snapshot="snapA", debug=True
+    )
+    assert debug["code"] == "SNAPSHOT_INCOMPATIBLE"
+    assert debug["debug"]["exception"] == "BatfishException"
+    assert "InvalidClassException" in debug["debug"]["log"]
+
+    assertion = server.batfish_run_assertion(
+        name="assert_zero_results",
+        question={"fun": "initIssues"},
+        snapshot="snapA",
+        debug=True,
+    )
+    assert assertion["status"] == "error"
+    assert assertion["code"] == "SNAPSHOT_INCOMPATIBLE"
+    assert "InvalidClassException" in assertion["debug"]["raw_message"]
+
+
+def test_assertion_descriptions_document_the_icmp_default():
+    clear_session()
+    specs = server.batfish_list_assertions()["specs"]
+    for name in (
+        "assert_flows_succeed",
+        "assert_flows_fail",
+        "assert_filter_permits",
+        "assert_filter_denies",
+    ):
+        assert "ICMP" in specs[name]["description"], name
+        assert "dstPorts" in specs[name]["description"], name
+
+
+def test_delete_snapshot_removes_the_snapshot(fake):
+    fake.networks["NETWORK"] = ["abc_net_1", "abc_net"]
+    assert server.batfish_delete_snapshot(name="abc_net_1") == {
+        "name": "abc_net_1"
+    }
+    assert fake.list_snapshots() == ["abc_net"]
+    assert fake.calls_named("delete_snapshot") == [
+        ("delete_snapshot", "abc_net_1")
+    ]
+
+
 def test_missing_snapshot_is_reported_before_running(fake):
     with pytest.raises(ValueError) as exc:
         server.batfish_run_question(fun="nodeProperties", snapshot="abc_net")
@@ -622,10 +803,21 @@ def test_tools_round_trip_over_the_mcp_wire(fake):
 
     async def run():
         async with Client(server.mcp) as client:
-            names = [t.name for t in await client.list_tools()]
-            assert "batfish_run_question" in names
-            assert "batfish_get_question" in names
-            assert "batfish_find_questions" in names
+            names = {t.name for t in await client.list_tools()}
+            assert names == {
+                "batfish_find_questions",
+                "batfish_list_questions",
+                "batfish_get_question",
+                "batfish_list_snapshots",
+                "batfish_delete_snapshot",
+                "batfish_upload_snapshot",
+                "batfish_run_question",
+                "batfish_list_assertions",
+                "batfish_run_assertion",
+                "batfish_run_assertion_suite",
+                "batfish_fork_snapshot",
+                "batfish_get_topology",
+            }
             response = await client.call_tool(
                 "batfish_run_question", {"fun": "nodeProperties", "snapshot": "snapA"}
             )

@@ -58,6 +58,7 @@ from . import (
     assertion_specs,
     assertions,
     catalog,
+    errors,
     presenter,
     queries,
     topology,
@@ -113,6 +114,13 @@ Decision guide:
 
 If two questions still fit, say so and explain the difference rather than
 guessing. Pass `network` on the first call if the server has no network set.
+
+Question failures come back as `{status: "error", code, message}` instead of a
+Java work-item log; pass `debug: true` to include the raw log. Header values are
+Batfish specifiers: `srcIps`/`dstIps` accept IPs, prefixes, node names, or named
+IP spaces, while `srcPorts`/`dstPorts` require string specs such as "443".
+When an assertion omits `ipProtocols`, Batfish tests ICMP; set
+`ipProtocols` and `dstPorts` for service-level checks.
 """
 
 mcp = FastMCP("batfish-q-mcp", instructions=_INSTRUCTIONS)
@@ -209,6 +217,39 @@ def _catalog_index() -> dict[str, tuple[dict, dict]]:
     return index
 
 
+# Template types are Java-style (``integer``, ``headerConstraint``,
+# ``nodeSpec``). Map them to the public names used by TYPE_HINTS. Unknown
+# specifier types stay ``str`` rather than leaking Java implementation names.
+_TEMPLATE_TYPE_ALIASES = {
+    "integer": "int",
+    "int": "int",
+    "long": "int",
+    "boolean": "bool",
+    "bool": "bool",
+    "string": "str",
+    "str": "str",
+    "headerConstraint": "HeaderConstraints",
+    "pathConstraint": "PathConstraints",
+    "nodeSpec": "NodeSpec",
+    "interfacesSpec": "InterfaceSpec",
+    "ipSpaceSpec": "IpSpaceSpec",
+    "ip": "IpSpec",
+    "prefix": "IpSpec",
+    "filterSpec": "FilterSpec",
+    "locationSpec": "LocationSpec",
+    "routingPolicySpec": "RoutingPolicySpec",
+    "bgpRoutes": "BgpRoute",
+    "bgpSessionProperties": "BgpSessionProperties",
+}
+
+
+def _template_type(raw: Optional[str]) -> str:
+    """Public type name for a live-template type."""
+    if not raw:
+        return "str"
+    return _TEMPLATE_TYPE_ALIASES.get(raw, "str")
+
+
 def _required(inp: dict, meta_input: dict) -> bool:
     """Catalog required flag, preferring the live-template metadata."""
     if "required" in meta_input:
@@ -216,9 +257,16 @@ def _required(inp: dict, meta_input: dict) -> bool:
     return not inp.get("optional", True)
 
 
+def _input_type(inp: dict, meta_input: dict) -> str:
+    """Public type for an input: explicit catalog type, else template type."""
+    if inp.get("type"):
+        return inp["type"]
+    return _template_type(meta_input.get("type"))
+
+
 def _detail_input(inp: dict, meta_input: dict) -> dict:
     """One catalog input plus its template metadata and TYPE_HINTS."""
-    in_type = inp.get("type", "str")
+    in_type = _input_type(inp, meta_input)
     entry = {
         "name": inp["name"],
         "type": in_type,
@@ -242,7 +290,7 @@ def _detail_input(inp: dict, meta_input: dict) -> dict:
 
 def _summary_input(inp: dict, meta_input: dict) -> dict:
     """Compact input for the list tool: no descriptions or value domains."""
-    in_type = inp.get("type", "str")
+    in_type = _input_type(inp, meta_input)
     entry = {
         "name": inp["name"],
         "type": in_type,
@@ -549,7 +597,7 @@ def batfish_get_question(fun: str) -> dict:
             continue
         entry = {
             "name": name,
-            "type": meta_input.get("type", "str"),
+            "type": _template_type(meta_input.get("type")),
             "required": meta_input.get("required", False),
         }
         for key in (
@@ -670,6 +718,90 @@ def batfish_upload_snapshot(
             os.unlink(tmp.name)
 
 
+_PORT_FIELDS = frozenset({"srcPorts", "dstPorts"})
+
+
+def _walk_options(node: Any, path: str = ""):
+    """Yield ``(path, key, value)`` for every dict entry in a JSON value."""
+    if isinstance(node, dict):
+        for key, value in node.items():
+            child = f"{path}.{key}" if path else str(key)
+            yield child, key, value
+            yield from _walk_options(value, child)
+    elif isinstance(node, list):
+        for index, value in enumerate(node):
+            yield from _walk_options(value, f"{path}[{index}]")
+
+
+def _validate_question_options(
+    fun: str,
+    options: dict,
+    snapshot: Optional[str],
+    reference_snapshot: Optional[str],
+) -> Optional[dict]:
+    """Return a structured error for options Batfish cannot handle well.
+
+    These checks prevent opaque Java work-item failures: the bidirectional
+    reverse-flow transformation needs a destination, port fields are string
+    specs, and ``maxTraces`` is an integer.
+    """
+    if not isinstance(options, dict):
+        return errors.error_payload(
+            "INVALID_ARGUMENT",
+            "options must be a mapping of question keyword arguments.",
+            fun=fun,
+            snapshot=snapshot,
+            reference_snapshot=reference_snapshot,
+        )
+
+    if fun == "bidirectionalReachability":
+        headers = options.get("headers")
+        if not isinstance(headers, dict) or not headers.get("dstIps"):
+            return errors.error_payload(
+                "BIDIRECTIONAL_REQUIRES_DST",
+                (
+                    "bidirectionalReachability requires headers.dstIps (an IP, "
+                    "prefix, or node name such as 'server_2'); without a "
+                    "destination constraint Batfish fails during reverse-flow "
+                    "transformation setup. Example: {\"headers\": "
+                    "{\"srcIps\": \"server_1\", \"dstIps\": \"server_2\"}}."
+                ),
+                fun=fun,
+                snapshot=snapshot,
+                reference_snapshot=reference_snapshot,
+            )
+
+    for path, key, value in _walk_options(options):
+        if value is None:
+            continue
+        if key in _PORT_FIELDS and not isinstance(value, str):
+            return errors.error_payload(
+                "INVALID_PORT_SPEC",
+                (
+                    f"{path} must be a string port spec such as \"443\" or "
+                    f"\"80,443\" (got {type(value).__name__}); numeric JSON "
+                    "values are not accepted."
+                ),
+                fun=fun,
+                snapshot=snapshot,
+                reference_snapshot=reference_snapshot,
+            )
+        if key == "maxTraces" and (
+            isinstance(value, bool) or not isinstance(value, int)
+        ):
+            return errors.error_payload(
+                "INVALID_ARGUMENT",
+                (
+                    f"{path} must be an integer (got "
+                    f"{type(value).__name__})."
+                ),
+                fun=fun,
+                snapshot=snapshot,
+                reference_snapshot=reference_snapshot,
+            )
+    return None
+
+
 @mcp.tool()
 def batfish_run_question(
     fun: str,
@@ -677,6 +809,7 @@ def batfish_run_question(
     snapshot: Optional[str] = None,
     reference_snapshot: Optional[str] = None,
     network: Optional[str] = None,
+    debug: bool = False,
 ) -> dict:
     """Run a Batfish question and return its answer as JSON-safe rows.
 
@@ -687,11 +820,20 @@ def batfish_run_question(
     - ``reference_snapshot`` + ``snapshot`` runs a differential question
       comparing the two; both are required for differential questions.
     - ``network`` points the session at a network first, if given.
+    - ``debug=True`` includes the raw Batfish exception log in the response.
     - A named ``snapshot``/``reference_snapshot`` must exist in the network;
       otherwise a ``ValueError`` lists the available snapshots.
 
     Returns ``{fun, snapshot, reference_snapshot, status, rows,
-    removed_columns}`` where ``rows`` is a list of row dicts.
+    removed_columns}`` where ``rows`` is a list of row dicts. A Batfish failure
+    returns ``{status: "error", code, message, rows: []}`` instead of raising;
+    known codes include ``SNAPSHOT_INCOMPATIBLE``, ``INVALID_ARGUMENT``,
+    ``INVALID_PORT_SPEC``, and ``BIDIRECTIONAL_REQUIRES_DST``.
+
+    Header values are Batfish specifiers: ``srcIps``/``dstIps`` accept IPs,
+    prefixes, node names, or named IP spaces; ``srcPorts``/``dstPorts`` take
+    strings such as ``"443"``. If ``ipProtocols`` is omitted, Batfish tests
+    ICMP, so set ``ipProtocols`` and ``dstPorts`` for service-level checks.
     """
     with _lock:
         bf = get_session()
@@ -708,11 +850,28 @@ def batfish_run_question(
             snapshots = (reference_snapshot, snapshot)
 
         _ensure_snapshots(bf, snapshot, reference_snapshot)
-        answer = queries.run_query(
-            {"fun": fun, "options": options or {}},
-            snapshots=snapshots,
-            snapshot=snapshot,
+
+        options = options or {}
+        invalid = _validate_question_options(
+            fun, options, snapshot, reference_snapshot
         )
+        if invalid is not None:
+            return invalid
+
+        try:
+            answer = queries.run_query(
+                {"fun": fun, "options": options},
+                snapshots=snapshots,
+                snapshot=snapshot,
+            )
+        except Exception as exc:  # BatfishException and transport errors
+            return errors.exception_payload(
+                exc,
+                fun=fun,
+                snapshot=snapshot,
+                reference_snapshot=reference_snapshot,
+                debug=debug,
+            )
         return _serialize_answer(answer, fun, snapshot, reference_snapshot)
 
 
@@ -789,7 +948,9 @@ def _answer_rows(answer: Any) -> list:
     return [{"value": str(answer)}]
 
 
-def _result_to_dict(result: "assertions.AssertionResult", name: str) -> dict:
+def _result_to_dict(
+    result: "assertions.AssertionResult", name: str, debug: bool = False
+) -> dict:
     """Flat JSON dict for an AssertionResult (raw answer rows included)."""
     out = {
         "type": name,
@@ -799,6 +960,12 @@ def _result_to_dict(result: "assertions.AssertionResult", name: str) -> dict:
         "ran_at": result.ran_at,
         "runtime": round(result.runtime, 3),
     }
+    if result.status == assertions.ERROR:
+        code, message = errors.classify_message(result.message)
+        out["code"] = code
+        out["message"] = message
+        if debug and result.message and result.message != message:
+            out["debug"] = {"raw_message": result.message}
     if result.fun:
         out["fun"] = result.fun
     rows = _answer_rows(result.answer)
@@ -847,21 +1014,29 @@ def batfish_run_assertion(
     question: Optional[dict] = None,
     snapshot: Optional[str] = None,
     network: Optional[str] = None,
+    debug: bool = False,
 ) -> dict:
     """Validate and run one assertion on a snapshot.
 
     - ``name``: assertion type (see ``batfish_list_assertions``).
     - ``params``: its parameters, e.g. ``{"headers": {"dstIps":
-      "8.8.8.8"}}`` for ``assert_flows_succeed``.
+      "8.8.8.8", "ipProtocols": ["TCP"], "dstPorts": "443"}}`` for
+      ``assert_flows_succeed``.
     - ``question``: ``{"fun": ..., "options": {...}}`` — required for
       answer-based assertions (``assert_zero_results``, ``assert_num_results``,
       ``assert_min_results``); the question is run first and its answer checked.
     - ``snapshot`` / ``network``: run on that snapshot (and network first),
       otherwise the session's current ones.
+    - ``debug=True`` includes the raw Batfish error text on failures.
 
     Returns ``{type, status (pass/fail/error), message, snapshot, ran_at,
-    runtime, fun?, answer_rows?}``. Validation problems are returned as
+    runtime, fun?, answer_rows?, code?}``. Validation problems are returned as
     ``status: "error"`` with an ``errors`` list (nothing is run).
+
+    Header fields follow Batfish rules: ``srcIps``/``dstIps`` accept IPs,
+    prefixes, and node names; ``srcPorts``/``dstPorts`` are string specs such
+    as ``"443"``. When ``ipProtocols`` is omitted, Batfish tests ICMP, so set
+    ``ipProtocols`` and ``dstPorts`` for service-level assertions.
     """
     with _lock:
         bf = get_session()
@@ -873,17 +1048,18 @@ def batfish_run_assertion(
         if question:
             item["question"] = question
 
-        errors = assertion_io.validate_assertion(item, _known_funs())
-        if errors:
+        problems = assertion_io.validate_assertion(item, _known_funs())
+        if problems:
             return {
                 "type": name,
                 "status": assertions.ERROR,
-                "message": "; ".join(errors),
-                "errors": errors,
+                "code": "VALIDATION_ERROR",
+                "message": "; ".join(problems),
+                "errors": problems,
                 "snapshot": snapshot,
             }
         return _result_to_dict(
-            assertions.run_assertion_item(item, snapshot), name
+            assertions.run_assertion_item(item, snapshot), name, debug=debug
         )
 
 
@@ -892,6 +1068,7 @@ def batfish_run_assertion_suite(
     suite_yaml: str,
     snapshot: Optional[str] = None,
     network: Optional[str] = None,
+    debug: bool = False,
 ) -> dict:
     """Validate and run an assertion suite (YAML text) on a snapshot.
 
@@ -902,12 +1079,19 @@ def batfish_run_assertion_suite(
           - type: assert_flows_succeed
             params:
               startLocation: as1border1
-              headers: {dstIps: 2.128.0.101}
+              headers:
+                dstIps: 2.128.0.101
+                ipProtocols: [TCP]
+                dstPorts: "443"
+
+    Header fields follow Batfish rules: ``srcIps``/``dstIps`` accept IPs,
+    prefixes, and node names; ``srcPorts``/``dstPorts`` are string specs such
+    as ``"443"``. Without ``ipProtocols``, Batfish tests ICMP.
 
     All-or-nothing: if the suite is invalid, nothing runs and the result is
     ``{results: [], errors: [...], summary: {...}}``. Otherwise results are
-    ``{type, status, message, snapshot, ran_at, runtime, fun?,
-    answer_rows?}`` per assertion, plus a ``summary`` of pass/fail/error counts.
+    ``{type, status, message, snapshot, ran_at, runtime, fun?, answer_rows?,
+    code?}`` per assertion, plus a ``summary`` of pass/fail/error counts.
     """
     with _lock:
         bf = get_session()
@@ -915,17 +1099,19 @@ def batfish_run_assertion_suite(
             bf.set_network(network)
         _ensure_snapshots(bf, snapshot)
 
-        items, errors = assertion_io.load_assertions(suite_yaml, _known_funs())
-        if errors:
+        items, problems = assertion_io.load_assertions(suite_yaml, _known_funs())
+        if problems:
             return {
                 "results": [],
-                "errors": errors,
+                "errors": problems,
                 "summary": {"passed": 0, "failed": 0, "error": 0},
             }
 
         results = [
             _result_to_dict(
-                assertions.run_assertion_item(item, snapshot), item["type"]
+                assertions.run_assertion_item(item, snapshot),
+                item["type"],
+                debug=debug,
             )
             for item in items
         ]
