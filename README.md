@@ -1,6 +1,10 @@
 <!-- mcp-name: io.github.martimy/batfish-q-mcp -->
 # batfish-q-mcp
 
+[![PyPI](https://img.shields.io/pypi/v/batfish-q-mcp)](https://pypi.org/project/batfish-q-mcp/)
+[![Python](https://img.shields.io/pypi/pyversions/batfish-q-mcp)](https://pypi.org/project/batfish-q-mcp/)
+[![License](https://img.shields.io/pypi/l/batfish-q-mcp)](LICENSE)
+
 An MCP (Model Context Protocol) server that exposes [Batfish](https://batfish.org)
 as tools for AI assistants. Point it at a snapshot of your network configs and
 ask questions in plain language, without writing Batfish queries yourself.
@@ -12,8 +16,13 @@ With it, an assistant can:
 * **fork a snapshot** with failed nodes or interfaces and **diff** the result against the original
 * return **layer 3 and routing topology** as nodes and edges
 
-> This project is an offshoot of [Bat-Q](https://github.com/martimy/Bat-Q), a
-> Streamlit GUI over Batfish. See [Acknowledgements](#acknowledgements).
+> batfish-q-mcp is an offshoot of [Bat-Q](https://github.com/martimy/Bat-Q), a
+> Streamlit GUI over Batfish (see [Acknowledgements](#acknowledgements)). The
+> pybatfish project also includes its own MCP server; batfish-q-mcp is a separate
+> community project, not affiliated with the Batfish maintainers, and uses a
+> different command name (`batfish-q-mcp`) so the two can be installed side by side.
+
+<!-- TODO: add a screenshot or short GIF of a real prompt and answer here, e.g. ![Demo](docs/images/demo.png) -->
 
 ## Example prompts
 
@@ -40,30 +49,10 @@ docker run --rm -p 9996:9996 -p 9997:9997 batfish/allinone
 The server connects to `127.0.0.1` by default. If Batfish runs elsewhere, set
 `BATFISH_SERVER` (for example `BATFISH_SERVER=<batfish-host>`).
 
-### 2. Install batfish-q-mcp
+### 2. Connect your MCP client
 
-Requires Python `>=3.10`.
-
-```bash
-git clone https://github.com/martimy/batfish-q-mcp.git
-cd batfish-q-mcp
-
-# Recommended: use a virtual environment
-python3 -m venv .batmcp
-source .batmcp/bin/activate
-pip install -e .
-```
-
-Alternatives:
-
-```bash
-pip install -r requirements.txt
-pip install -e ".[dev]"   # includes test dependencies
-```
-
-This installs a console script, `batfish-q-mcp`, which starts the MCP server over stdio.
-
-### 3. Connect your MCP client
+The package is on PyPI, so the simplest setup runs it with
+[uv](https://docs.astral.sh/uv/) (`uvx`), with nothing to clone or install first.
 
 #### Claude Desktop, Cursor, and other stdio clients
 
@@ -71,28 +60,47 @@ This installs a console script, `batfish-q-mcp`, which starts the MCP server ove
 {
   "mcpServers": {
     "batfish-q-mcp": {
-      "command": "batfish-q-mcp",
+      "command": "uvx",
+      "args": ["batfish-q-mcp"],
       "env": { "BATFISH_SERVER": "127.0.0.1" }
     }
   }
 }
 ```
 
-If you installed into a virtual environment, use the absolute path to the script
-instead (find it with `which batfish-q-mcp` while the environment is active):
+Restart the client so it picks up the new server. To pin a version, use
+`"batfish-q-mcp@X.Y.Z"` in `args`.
+
+Prefer `pip`? Install it with `pip install batfish-q-mcp` (ideally in a virtual
+environment) and use the full path to the `batfish-q-mcp` command, or just
+`batfish-q-mcp` if it is on your `PATH`, as the `command` instead of `uvx`.
+
+#### Claude Desktop on Windows with the server in WSL
+
+Claude Desktop runs on Windows, so launch the server through `wsl.exe`. Edit
+`%APPDATA%\Claude\claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "batfish-q-mcp": {
-      "command": "/path/to/batfish-q-mcp/.batmcp/bin/batfish-q-mcp",
-      "env": { "BATFISH_SERVER": "127.0.0.1" }
+      "command": "wsl.exe",
+      "args": [
+        "-d", "<distro>",
+        "--",
+        "env", "BATFISH_SERVER=127.0.0.1",
+        "/home/<you>/.local/bin/uvx", "batfish-q-mcp"
+      ]
     }
   }
 }
 ```
 
-Restart the client so it picks up the new server.
+* Find `<distro>` with `wsl -l -v` in PowerShell.
+* Use the absolute path to `uvx` (`which uvx` in WSL). Non-interactive WSL shells
+  often do not have `~/.local/bin` on `PATH`.
+* Adjust `BATFISH_SERVER` if Batfish runs somewhere other than the WSL machine.
+* Fully quit and reopen Claude Desktop after editing the file.
 
 #### OpenCode
 
@@ -106,7 +114,7 @@ OpenCode uses `opencode.json` (schema `https://opencode.ai/config.json`) with
     "servers": {
       "batfish-q-mcp": {
         "type": "local",
-        "command": ["/path/to/batfish-q-mcp/.batmcp/bin/batfish-q-mcp"],
+        "command": ["uvx", "batfish-q-mcp"],
         "environment": {
           "BATFISH_SERVER": "127.0.0.1"
         }
@@ -126,7 +134,7 @@ restart OpenCode from that directory so it reloads MCP servers.
 > await tools["batfish-q-mcp"].batfish_list_questions({});
 > ```
 
-### 4. Load a snapshot and ask
+### 3. Load a snapshot and ask
 
 Package your configs as a snapshot zip (see [Providing a snapshot](#providing-a-snapshot)),
 put it in your workspace, and tell the assistant the filename. The assistant
@@ -137,18 +145,29 @@ uploads it and runs the questions you ask.
 > stays set for the life of the process. Calling `batfish_list_snapshots`
 > without `network` fails with `Network must be set`.
 
-### Running the server manually (optional)
+## Compatibility
 
-To check that the server starts outside a client:
+* Python `>=3.10`.
+* Tested with Claude Desktop on Windows, with the server running in WSL. Other MCP
+  clients that launch stdio servers (Cursor, OpenCode, and similar) should work, but
+  have not all been tested.
+<!-- TODO: add the Batfish and pybatfish versions this release was tested with. -->
 
-```bash
-export BATFISH_SERVER=127.0.0.1
-batfish-q-mcp
-# or
-python -m batfish_mcp.server
-```
+## Data handling
 
-It speaks stdio JSON-RPC (FastMCP) and does not print logs to stdout.
+Batfish runs where you start it, but what the assistant retrieves is not local:
+tool results, including parts of your configurations (addresses, interface
+descriptions, routing details), pass through your MCP client to the LLM provider
+behind it. Before loading real configs:
+
+* remove or replace secrets such as passwords, SNMP communities, and keys, or use lab or sanitized configs;
+* check your LLM provider's data-retention and privacy terms and your organization's policy.
+
+## Known limitations
+
+* **Snapshot upload goes through the assistant as base64.** This is fine for small lab snapshots and impractical for large ones. For large snapshots, load the snapshot into Batfish yourself (see below) and refer to it by `snapshot` and `network` name.
+* **A network must be set on the first call** that needs one (see the note above).
+* **One shared Batfish session** per server process; tool calls are serialized.
 
 ## Providing a snapshot
 
@@ -162,7 +181,8 @@ It speaks stdio JSON-RPC (FastMCP) and does not print logs to stdout.
 * **Shell access:** you can also upload directly with pybatfish:
 
   ```bash
-  PYTHONPATH=src python3 - <<'PY'
+  pip install pybatfish
+  python3 - <<'PY'
   import os
   from pybatfish.client.session import Session
   bf = Session(host=os.getenv("BATFISH_SERVER", "127.0.0.1"))
@@ -227,13 +247,65 @@ See [HOW-TO.md](HOW-TO.md) for a longer walkthrough.
 
 ## Troubleshooting
 
+* **The server does not show up or fails to start in Claude Desktop**: check the log (on Windows, `%APPDATA%\Claude\logs\mcp-server-batfish-q-mcp.log`) and run the same command by hand in a terminal. A working server starts and waits silently for input. Check that the JSON is valid and that `<distro>` and `<you>` are replaced.
+* **`uvx: command not found`** (for example inside the WSL launch above): use the absolute path from `which uvx`.
+* **The server starts but tools report connection errors**: Batfish is not running or not reachable on ports 9996 and 9997. Start it and check `BATFISH_SERVER`.
 * **`Network must be set`**: pass `network="NETWORK"` on the first call.
 * **`zip_base64 is not valid base64: Incorrect padding`**: re-encode with `base64 -w 0 abc_net.zip` (no newlines) and keep the trailing `=` or `==`. Do not trim by hand.
 * **Snapshot already exists**: pass `overwrite: true`, or accept the `name_1` suffix.
 * **No parse issues but wrong IPs?** Run `batfish_run_question(fun="initIssues")` and `fileParseStatus` first.
 * **Reachability to `240.254.254.1` fails but `8.8.8.8` works**: `240.0.0.0/4` is reserved, and an ISP egress filter such as `Block outgoing traffic using reserved addresses` drops it. Use a public IP to test internet egress.
 
-## Layout
+## Development
+
+### Install from source
+
+```bash
+git clone https://github.com/martimy/batfish-q-mcp.git
+cd batfish-q-mcp
+
+python3 -m venv .batmcp
+source .batmcp/bin/activate
+pip install -e ".[dev]"      # includes test dependencies
+```
+
+This installs the `batfish-q-mcp` command, which starts the MCP server over
+stdio. To use your local copy from a client, point `command` at the script in
+your virtual environment (find it with `which batfish-q-mcp` while the
+environment is active):
+
+```json
+{
+  "mcpServers": {
+    "batfish-q-mcp": {
+      "command": "/path/to/batfish-q-mcp/.batmcp/bin/batfish-q-mcp",
+      "env": { "BATFISH_SERVER": "127.0.0.1" }
+    }
+  }
+}
+```
+
+To check that the server starts outside a client:
+
+```bash
+export BATFISH_SERVER=127.0.0.1
+batfish-q-mcp
+# or
+python -m batfish_mcp.server
+```
+
+It speaks stdio JSON-RPC (FastMCP) and does not print logs to stdout.
+
+### Tests
+
+```bash
+pytest          # no Batfish server required (fakes + one in-memory MCP round-trip)
+```
+
+`tests/test_assertions.py` also checks that `assertion_specs.py` stays in sync
+with the installed pybatfish (scripted-assertion signatures).
+
+### Layout
 
 ```
 src/batfish_mcp/
@@ -257,15 +329,12 @@ examples/assertions.yaml
 HOW-TO.md             # mini tutorial
 ```
 
-## Tests
+## Feedback and contributions
 
-```bash
-pip install -e ".[dev]"
-pytest          # no Batfish server required (fakes + one in-memory MCP round-trip)
-```
-
-`tests/test_assertions.py` also checks that `assertion_specs.py` stays in sync
-with the installed pybatfish (scripted-assertion signatures).
+Bug reports, questions, and pull requests are welcome through
+[GitHub Issues](https://github.com/martimy/batfish-q-mcp/issues). Reports that
+include the client you use, your operating system, and the output of
+`batfish-q-mcp` run by hand are the easiest to act on.
 
 ## Acknowledgements
 
