@@ -132,8 +132,194 @@ def test_list_questions_exposes_p0_metadata():
 def test_server_instructions_guide_question_selection():
     instructions = server.mcp.instructions
     assert "batfish_list_questions" in instructions
+    assert "batfish_get_question" in instructions
     assert "required: true" in instructions
     assert "reference_snapshot" in instructions
+
+
+# ------------------------------------------------------- per-question metadata
+def test_list_questions_includes_p1_discovery_metadata():
+    clear_session()
+    questions = server.batfish_list_questions()
+    by_fun = {q["fun"]: q for q in questions}
+
+    assert all(q["description"] for q in questions)
+    assert all(isinstance(q["tags"], list) for q in questions)
+    assert all(isinstance(q["synonyms"], list) for q in questions)
+
+    traceroute = by_fun["traceroute"]
+    assert traceroute["output_columns"] == ["Flow", "Traces", "TraceCount"]
+    assert "trace path" in traceroute["synonyms"]
+
+    reachability = by_fun["reachability"]
+    assert "connectivity test" in reachability["synonyms"]
+    assert "routing table" in by_fun["routes"]["synonyms"]
+
+    # The compact list exposes names only, not per-column objects.
+    assert all(
+        isinstance(name, str)
+        for q in questions
+        for name in q["output_columns"]
+    )
+
+
+def test_get_question_returns_full_metadata():
+    clear_session()
+    traceroute = server.batfish_get_question("traceroute")
+
+    assert traceroute["description"].startswith("Traces the path")
+    assert "virtual traceroute" in traceroute["long_description"]
+    assert traceroute["tags"] == ["dataplane", "traceroute"]
+    assert traceroute["metadata_complete"] is True
+    assert traceroute["output_columns"] == [
+        {"name": "Flow", "type": "Flow", "description": "The flow"},
+        {
+            "name": "Traces",
+            "type": "Set of Trace",
+            "description": "The traces for this flow",
+        },
+        {
+            "name": "TraceCount",
+            "type": "int",
+            "description": "The total number traces for this flow",
+        },
+    ]
+
+    inputs = {i["name"]: i for i in traceroute["inputs"]}
+    assert inputs["startLocation"]["required"] is True
+    assert inputs["startLocation"]["description"]
+    assert inputs["headers"]["field_specs"]["dstIps"]["optional"] is False
+    assert inputs["headers"]["fields"]  # TYPE_HINTS still present
+
+
+def test_get_question_exposes_defaults_and_allowed_values():
+    clear_session()
+    routes = server.batfish_get_question("routes")
+    inputs = {i["name"]: i for i in routes["inputs"]}
+    assert inputs["rib"]["allowed_values"] == ["main", "bgp", "evpn"]
+    assert inputs["prefixMatchType"]["default"] == "EXACT"
+    assert inputs["prefixMatchType"]["allowed_values"] == [
+        "EXACT",
+        "LONGEST_PREFIX_MATCH",
+        "LONGER_PREFIXES",
+        "SHORTER_PREFIXES",
+    ]
+
+    policies = server.batfish_get_question("testRoutePolicies")
+    direction = next(
+        i for i in policies["inputs"] if i["name"] == "direction"
+    )
+    assert direction["allowed_values"] == [
+        {
+            "value": "in",
+            "description": "The route is inbound to the device",
+        },
+        {
+            "value": "out",
+            "description": "The route is outbound from the device",
+        },
+    ]
+
+    # Enum-like specifiers without template ``values`` come from Batfish's
+    # documented parameter grammar.
+    bgp_status = next(
+        i
+        for i in server.batfish_get_question("bgpSessionStatus")["inputs"]
+        if i["name"] == "status"
+    )
+    assert [v["value"] for v in bgp_status["allowed_values"]] == [
+        "NOT_COMPATIBLE",
+        "NOT_ESTABLISHED",
+        "ESTABLISHED",
+    ]
+    assert all(v["description"] for v in bgp_status["allowed_values"])
+
+    search_action = next(
+        i
+        for i in server.batfish_get_question("searchFilters")["inputs"]
+        if i["name"] == "action"
+    )
+    assert [v["value"] for v in search_action["allowed_values"]] == [
+        "permit",
+        "deny",
+        "matchLine <line number>",
+    ]
+
+    reachability = server.batfish_get_question("reachability")
+    actions = next(
+        i for i in reachability["inputs"] if i["name"] == "actions"
+    )
+    assert actions["default"] == "success"
+    assert "failure" in [v["value"] for v in actions["allowed_values"]]
+
+
+def test_get_question_uses_corrected_catalog_inputs():
+    clear_session()
+    by_fun = {
+        q["fun"]: {i["name"]: i for i in q["inputs"]}
+        for q in (
+            server.batfish_get_question(fun)
+            for fun in (
+                "ipOwners",
+                "searchRoutePolicies",
+                "filterLineReachability",
+                "resolveFilterSpecifier",
+                "testFilters",
+            )
+        )
+    }
+
+    assert "ips" in by_fun["ipOwners"]
+    assert "pathOption" in by_fun["searchRoutePolicies"]
+    assert "nodes" in by_fun["filterLineReachability"]
+    assert "filters" in by_fun["resolveFilterSpecifier"]
+    assert "filter" not in by_fun["resolveFilterSpecifier"]
+    assert by_fun["testFilters"]["headers"]["required"] is True
+
+
+def test_get_question_unknown_name_lists_known_questions():
+    clear_session()
+    with pytest.raises(ValueError, match="unknown question 'nope'"):
+        server.batfish_get_question("nope")
+
+
+def test_static_metadata_covers_the_catalog_and_has_no_gaps():
+    clear_session()
+    metadata = server._question_metadata()
+    catalog_funs = {
+        q["fun"]
+        for c in server.catalog.read_questions()["Batfish"]
+        for q in c["questions"]
+    }
+
+    assert set(metadata) == catalog_funs
+    for fun, meta in metadata.items():
+        assert meta["description"], fun
+        assert meta["tags"], fun
+        assert meta["synonyms"], fun
+        assert meta["output_columns"], fun
+        for column in meta["output_columns"]:
+            assert set(column) == {"name", "type", "description"}
+            assert column["name"], fun
+            assert column["type"], fun
+            assert column["description"], fun
+
+        question = next(
+            q
+            for c in server.catalog.read_questions()["Batfish"]
+            for q in c["questions"]
+            if q["fun"] == fun
+        )
+        catalog_inputs = {i["name"] for i in question.get("input") or []}
+        assert catalog_inputs == set(meta["inputs"]), fun
+        for name, inp in meta["inputs"].items():
+            catalog_input = next(
+                i for i in question["input"] if i["name"] == name
+            )
+            assert inp["required"] == (
+                not catalog_input.get("optional", True)
+            ), (fun, name)
+
 
 
 # ------------------------------------------------------------------ snapshots
@@ -358,6 +544,7 @@ def test_tools_round_trip_over_the_mcp_wire(fake):
         async with Client(server.mcp) as client:
             names = [t.name for t in await client.list_tools()]
             assert "batfish_run_question" in names
+            assert "batfish_get_question" in names
             response = await client.call_tool(
                 "batfish_run_question", {"fun": "nodeProperties", "snapshot": "snapA"}
             )

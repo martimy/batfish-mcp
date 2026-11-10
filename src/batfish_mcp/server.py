@@ -27,6 +27,7 @@ concurrent use.
 Tool surface:
 
 - ``batfish_list_questions``       — the curated question catalog (catalog.py)
+- ``batfish_get_question``         — full metadata for one question
 - ``batfish_list_snapshots``       — snapshots of the current network
 - ``batfish_delete_snapshot``      — delete a snapshot
 - ``batfish_upload_snapshot``      — upload a snapshot zip (base64-encoded)
@@ -45,6 +46,7 @@ import json
 import os
 import tempfile
 import threading
+from pathlib import Path
 from typing import Any, Optional
 
 from fastmcp import FastMCP
@@ -66,12 +68,18 @@ _INSTRUCTIONS = """\
 This server exposes a curated catalog of 60 Batfish questions plus snapshot,
 assertion, topology, and failure-testing tools. Workflow: call
 batfish_list_questions (optionally filtered by category) to choose a question,
-then batfish_run_question with its `fun` and an `options` dict.
+call batfish_get_question for its full description, output columns, and input
+details, then batfish_run_question with its `fun` and an `options` dict.
 
-Each catalog entry includes a category description, required/optional inputs,
-and structured type metadata (`fields`, `placeholder`, `example`) for complex
-values such as HeaderConstraints. Inputs marked `required: true` must be
-supplied; other inputs may be omitted.
+Each catalog entry includes a one-line description, tags, synonyms, output
+column names, a category description, required/optional inputs, and structured
+type metadata (`fields`, `placeholder`, `example`) for complex values such as
+HeaderConstraints. Inputs marked `required: true` must be supplied; other
+inputs may be omitted. batfish_get_question adds long descriptions, typed
+output columns, input descriptions, defaults, allowed values, and field specs.
+
+batfish_list_questions works without a running Batfish; the metadata is checked
+in and generated from Batfish templates plus the official docs.
 
 Question selection guide:
 - Snapshot health: initIssues, fileParseStatus, parseWarning.
@@ -160,40 +168,113 @@ def _ensure_snapshots(bf, *snapshots: Optional[str]) -> None:
     )
 
 
+_METADATA_PATH = Path(__file__).with_name("question_metadata.json")
+
+
+@functools.lru_cache(maxsize=1)
+def _question_metadata() -> dict[str, dict]:
+    """Static per-question metadata generated from Batfish templates/docs.
+
+    The file is checked in so question discovery (including output columns)
+    works without a running Batfish. Regenerate it with
+    ``scripts/generate_question_metadata.py``.
+    """
+    try:
+        data = json.loads(_METADATA_PATH.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return {}
+    return data.get("questions", {})
+
+
+@functools.lru_cache(maxsize=1)
+def _catalog_index() -> dict[str, tuple[dict, dict]]:
+    """Map question ``fun`` to its ``(category, question)`` catalog entries."""
+    index = {}
+    for category in catalog.read_questions()["Batfish"]:
+        for question in category["questions"]:
+            index[question["fun"]] = (category, question)
+    return index
+
+
+def _required(inp: dict, meta_input: dict) -> bool:
+    """Catalog required flag, preferring the live-template metadata."""
+    if "required" in meta_input:
+        return meta_input["required"]
+    return not inp.get("optional", True)
+
+
+def _detail_input(inp: dict, meta_input: dict) -> dict:
+    """One catalog input plus its template metadata and TYPE_HINTS."""
+    in_type = inp.get("type", "str")
+    entry = {
+        "name": inp["name"],
+        "type": in_type,
+        "required": _required(inp, meta_input),
+    }
+    if meta_input.get("display_name"):
+        entry["display_name"] = meta_input["display_name"]
+    if meta_input.get("description"):
+        entry["description"] = meta_input["description"]
+    if "default" in meta_input:
+        entry["default"] = meta_input["default"]
+    if "allowed_values" in meta_input:
+        entry["allowed_values"] = meta_input["allowed_values"]
+    if meta_input.get("field_specs"):
+        entry["field_specs"] = meta_input["field_specs"]
+    if "min_length" in meta_input:
+        entry["min_length"] = meta_input["min_length"]
+    entry.update(TYPE_HINTS.get(in_type, {}))
+    return entry
+
+
+def _summary_input(inp: dict, meta_input: dict) -> dict:
+    """Compact input for the list tool: no descriptions or value domains."""
+    in_type = inp.get("type", "str")
+    entry = {
+        "name": inp["name"],
+        "type": in_type,
+        "required": _required(inp, meta_input),
+    }
+    entry.update(TYPE_HINTS.get(in_type, {}))
+    return entry
+
+
 @mcp.tool()
 def batfish_list_questions(category: Optional[str] = None) -> list[dict]:
     """List Batfish questions from the curated catalog.
 
     Returns one dict per question:
-    ``{category, category_description, fun, name, supports_differential,
-    differential_only, inputs, type?}``. Each input is ``{name, type,
-    required, hint?, fields?, placeholder?, example?}``.
+    ``{category, category_description, fun, name, description, tags,
+    synonyms, supports_differential, differential_only, output_columns,
+    inputs, type?}``.
 
-    - ``required`` is true unless the catalog marks the input optional.
-    - ``hint``/``fields``/``placeholder``/``example`` come from TYPE_HINTS
-      and describe complex types such as HeaderConstraints.
+    - ``description`` is a one-line summary; ``tags`` are Batfish's tags;
+      ``synonyms`` are plain-language search terms.
+    - ``output_columns`` lists only column names; call
+      ``batfish_get_question`` for their types and descriptions.
+    - Each input is ``{name, type, required, hint?, fields?, placeholder?,
+      example?}``. ``required`` is true when the input must be supplied
+      (not optional and has no default).
     - ``supports_differential`` is true when the question accepts a
       ``reference_snapshot``. ``differential_only`` marks the two questions
       (``compareFilters`` and ``differentialReachability``) that can only be
       run differentially; ``type`` is retained on those entries.
 
-    Pass a category name to filter; omit it for the full catalog.
+    Pass a category name to filter; omit it for the full catalog. This tool
+    uses checked-in metadata and does not contact Batfish.
     """
+    metadata = _question_metadata()
     questions = []
     for cat in catalog.read_questions()["Batfish"]:
         if category is not None and cat["category"] != category:
             continue
         for q in cat["questions"]:
-            inputs = []
-            for inp in q.get("input") or []:
-                in_type = inp.get("type", "str")
-                entry = {
-                    "name": inp["name"],
-                    "type": in_type,
-                    "required": not inp.get("optional", True),
-                }
-                entry.update(TYPE_HINTS.get(in_type, {}))
-                inputs.append(entry)
+            meta = metadata.get(q["fun"], {})
+            meta_inputs = meta.get("inputs", {})
+            inputs = [
+                _summary_input(inp, meta_inputs.get(inp["name"], {}))
+                for inp in q.get("input") or []
+            ]
             differential_only = q.get("type") == "differential"
             # Batfish docs say most questions can run differentially and two
             # are differential-only. The catalog has no per-question exclusion
@@ -203,14 +284,99 @@ def batfish_list_questions(category: Optional[str] = None) -> list[dict]:
                 "category_description": cat.get("description", ""),
                 "fun": q["fun"],
                 "name": q["name"],
+                "description": meta.get("description", ""),
+                "tags": meta.get("tags", []),
+                "synonyms": meta.get("synonyms", []),
                 "supports_differential": True,
                 "differential_only": differential_only,
+                "output_columns": [
+                    column["name"]
+                    for column in meta.get("output_columns", [])
+                ],
                 "inputs": inputs,
             }
             if q.get("type"):
                 entry["type"] = q["type"]
             questions.append(entry)
     return questions
+
+
+@mcp.tool()
+def batfish_get_question(fun: str) -> dict:
+    """Return full metadata for one question, including output columns.
+
+    ``fun`` is a catalog question name (see ``batfish_list_questions``).
+
+    Returns ``{category, category_description, fun, name, description,
+    long_description, tags, synonyms, supports_differential,
+    differential_only, output_columns, inputs, type?}``:
+
+    - ``output_columns`` is a list of ``{name, type, description}`` objects
+      describing the answer table.
+    - each input includes its catalog ``type`` and ``required`` flag plus
+      template details when available: ``description``, ``display_name``,
+      ``default``, ``allowed_values`` (strings, or ``{value, description}``
+      objects), ``field_specs`` for structured values, and ``min_length``.
+    - ``TYPE_HINTS`` add ``hint``/``fields``/``placeholder``/``example`` for
+      complex values such as HeaderConstraints.
+
+    Raises ``ValueError`` for an unknown ``fun``, listing the known names.
+    """
+    index = _catalog_index()
+    if fun not in index:
+        known = ", ".join(sorted(index))
+        raise ValueError(f"unknown question {fun!r}; known questions: {known}")
+
+    cat, q = index[fun]
+    meta = _question_metadata().get(fun, {})
+    meta_inputs = meta.get("inputs", {})
+
+    inputs = []
+    seen = set()
+    for inp in q.get("input") or []:
+        seen.add(inp["name"])
+        inputs.append(_detail_input(inp, meta_inputs.get(inp["name"], {})))
+    # Surface template-only inputs if the catalog has drifted.
+    for name, meta_input in meta_inputs.items():
+        if name in seen:
+            continue
+        entry = {
+            "name": name,
+            "type": meta_input.get("type", "str"),
+            "required": meta_input.get("required", False),
+        }
+        for key in (
+            "display_name",
+            "description",
+            "default",
+            "allowed_values",
+            "field_specs",
+            "min_length",
+        ):
+            if key in meta_input:
+                entry[key] = meta_input[key]
+        entry.update(TYPE_HINTS.get(entry["type"], {}))
+        inputs.append(entry)
+
+    differential_only = q.get("type") == "differential"
+    result = {
+        "category": cat["category"],
+        "category_description": cat.get("description", ""),
+        "fun": fun,
+        "name": q["name"],
+        "description": meta.get("description", ""),
+        "long_description": meta.get("long_description", ""),
+        "tags": meta.get("tags", []),
+        "synonyms": meta.get("synonyms", []),
+        "supports_differential": True,
+        "differential_only": differential_only,
+        "output_columns": meta.get("output_columns", []),
+        "inputs": inputs,
+        "metadata_complete": bool(meta),
+    }
+    if q.get("type"):
+        result["type"] = q["type"]
+    return result
 
 
 @mcp.tool()

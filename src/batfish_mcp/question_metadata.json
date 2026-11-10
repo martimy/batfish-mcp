@@ -1,0 +1,5271 @@
+{
+  "schema_version": 1,
+  "source": {
+    "generated_at": "2026-11-10T13:29:29Z",
+    "batfish_host": "192.168.2.4",
+    "pybatfish_version": "2026.9.17.3748",
+    "question_templates": "bf.q.<fun>.template from the live coordinator",
+    "allowed_values": "template 'values' when present; otherwise curated from batfish/questions/Parameters.md enum specifiers",
+    "output_columns": "Batfish docs notebooks: 'Return Value' tables"
+  },
+  "coverage": {
+    "questions": 60,
+    "questions_with_output_columns": 60,
+    "questions_missing_output_columns": [],
+    "questions_with_allowed_values": [
+      "bgpRib",
+      "bgpSessionCompatibility",
+      "bgpSessionStatus",
+      "bidirectionalReachability",
+      "differentialReachability",
+      "evpnRib",
+      "findMatchingFilterLines",
+      "ipsecSessionStatus",
+      "ospfSessionCompatibility",
+      "reachability",
+      "routes",
+      "searchFilters",
+      "searchRoutePolicies",
+      "testRoutePolicies"
+    ],
+    "inputs_with_descriptions": 172,
+    "inputs_with_defaults": 33,
+    "inputs_with_allowed_values": 20,
+    "catalog_input_mismatches": [],
+    "catalog_required_mismatches": []
+  },
+  "questions": {
+    "initIssues": {
+      "description": "Returns issues encountered when processing the snapshot.",
+      "long_description": "Reports issues encountered by Batfish, including failure to recognize certain lines in the configuration, lack of support for certain features, and errors when converting to vendor-independent models.",
+      "tags": [
+        "initialization"
+      ],
+      "synonyms": [
+        "snapshot initialization issues",
+        "device conversion errors",
+        "snapshot health"
+      ],
+      "differential": false,
+      "inputs": {},
+      "output_columns": [
+        {
+          "name": "Nodes",
+          "type": "List of str",
+          "description": "The nodes that were converted (if applicable)"
+        },
+        {
+          "name": "Source_Lines",
+          "type": "List of FileLines",
+          "description": "The files and lines that caused the issues (if applicable)"
+        },
+        {
+          "name": "Type",
+          "type": "str",
+          "description": "The type of issues identified"
+        },
+        {
+          "name": "Details",
+          "type": "str",
+          "description": "Details about the issues identified"
+        },
+        {
+          "name": "Line_Text",
+          "type": "str",
+          "description": "The text of the input files that caused the issues (if applicable)"
+        },
+        {
+          "name": "Parser_Context",
+          "type": "str",
+          "description": "Batfish parser state when issues were encountered (if applicable)"
+        }
+      ]
+    },
+    "fileParseStatus": {
+      "description": "Displays file parse status.",
+      "long_description": "For each file in a snapshot, returns the host(s) that were produced by the file and the parse status: pass, fail, partially parsed.",
+      "tags": [
+        "initialization"
+      ],
+      "synonyms": [
+        "file parse status",
+        "which config files parsed",
+        "parse failures"
+      ],
+      "differential": false,
+      "inputs": {},
+      "output_columns": [
+        {
+          "name": "File_Name",
+          "type": "str",
+          "description": "The file that was parsed"
+        },
+        {
+          "name": "Status",
+          "type": "str",
+          "description": "The status of the parsing operation"
+        },
+        {
+          "name": "File_Format",
+          "type": "str",
+          "description": "The detected format of the file"
+        },
+        {
+          "name": "Nodes",
+          "type": "List of str",
+          "description": "Names of nodes produced from this file"
+        }
+      ]
+    },
+    "parseWarning": {
+      "description": "Returns warnings that occurred when parsing the snapshot.",
+      "long_description": "Return warnings such as failure to recognize certain lines and lack of support for certain features.",
+      "tags": [
+        "initialization"
+      ],
+      "synonyms": [
+        "parse warnings",
+        "configuration warnings",
+        "unparsed lines"
+      ],
+      "differential": false,
+      "inputs": {
+        "aggregateDuplicates": {
+          "type": "boolean",
+          "required": false,
+          "display_name": "Aggregate duplicates",
+          "description": "Whether to aggregate duplicate results."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Filename",
+          "type": "str",
+          "description": "The file that was parsed"
+        },
+        {
+          "name": "Line",
+          "type": "int",
+          "description": "The line number in the input file that caused the warning"
+        },
+        {
+          "name": "Text",
+          "type": "str",
+          "description": "The text of the input that caused the warning"
+        },
+        {
+          "name": "Parser_Context",
+          "type": "str",
+          "description": "The context of the Batfish parser when the warning occurred"
+        },
+        {
+          "name": "Comment",
+          "type": "str",
+          "description": "An optional comment explaining more information about the warning"
+        }
+      ]
+    },
+    "nodeProperties": {
+      "description": "Returns configuration settings of nodes.",
+      "long_description": "Lists global settings of devices in the network. Settings that are specific to interfaces, routing protocols, etc. are available via other questions.",
+      "tags": [
+        "configuration"
+      ],
+      "synonyms": [
+        "device configuration",
+        "show configuration",
+        "node/device properties"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Include nodes matching this name or regex."
+        },
+        "properties": {
+          "type": "nodePropertySpec",
+          "required": false,
+          "display_name": "Properties",
+          "description": "Include properties matching this regex."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Node",
+          "type": "str",
+          "description": "Node"
+        },
+        {
+          "name": "AS_Path_Access_Lists",
+          "type": "Set of str",
+          "description": "Names of AS path access lists"
+        },
+        {
+          "name": "Authentication_Key_Chains",
+          "type": "Set of str",
+          "description": "Names of authentication keychains"
+        },
+        {
+          "name": "Community_Match_Exprs",
+          "type": "Set of str",
+          "description": "Names of expressions for matching a community"
+        },
+        {
+          "name": "Community_Set_Exprs",
+          "type": "Set of str",
+          "description": "Names of expressions representing a community-set"
+        },
+        {
+          "name": "Community_Set_Match_Exprs",
+          "type": "Set of str",
+          "description": "Names of expressions for matching a ommunity-set"
+        },
+        {
+          "name": "Community_Sets",
+          "type": "Set of str",
+          "description": "Names of community-sets"
+        },
+        {
+          "name": "Configuration_Format",
+          "type": "str",
+          "description": "Configuration format of the node"
+        },
+        {
+          "name": "DNS_Servers",
+          "type": "Set of str",
+          "description": "Configured DNS servers"
+        },
+        {
+          "name": "DNS_Source_Interface",
+          "type": "str",
+          "description": "Source interface to use for communicating with DNS servers"
+        },
+        {
+          "name": "Default_Cross_Zone_Action",
+          "type": "str",
+          "description": "Default action (PERMIT, DENY) for traffic that traverses firewall zones (null for non-firewall nodes)"
+        },
+        {
+          "name": "Default_Inbound_Action",
+          "type": "str",
+          "description": "Default action (PERMIT, DENY) for traffic destined for this node"
+        },
+        {
+          "name": "Domain_Name",
+          "type": "str",
+          "description": "Domain name of the node"
+        },
+        {
+          "name": "Hostname",
+          "type": "str",
+          "description": "Hostname of the node"
+        },
+        {
+          "name": "IKE_Phase1_Keys",
+          "type": "Set of str",
+          "description": "Names of IKE Phase 1 keys"
+        },
+        {
+          "name": "IKE_Phase1_Policies",
+          "type": "Set of str",
+          "description": "Names of IKE Phase 1 policies"
+        },
+        {
+          "name": "IKE_Phase1_Proposals",
+          "type": "Set of str",
+          "description": "Names of IKE Phase 1 proposals"
+        },
+        {
+          "name": "IP6_Access_Lists",
+          "type": "Set of str",
+          "description": "(Deprecated) Names of IPv6 filters (ACLs, firewall rule sets)"
+        },
+        {
+          "name": "IP_Access_Lists",
+          "type": "Set of str",
+          "description": "Names of IPv4 filters (ACLs, firewall rule sets)"
+        },
+        {
+          "name": "IPsec_Peer_Configs",
+          "type": "Set of str",
+          "description": "Names of IPSec peers"
+        },
+        {
+          "name": "IPsec_Phase2_Policies",
+          "type": "Set of str",
+          "description": "Names of IPSec Phase 2 policies"
+        },
+        {
+          "name": "IPsec_Phase2_Proposals",
+          "type": "Set of str",
+          "description": "Names of IPSec Phase 2 proposals"
+        },
+        {
+          "name": "Interfaces",
+          "type": "Set of str",
+          "description": "Names of interfaces"
+        },
+        {
+          "name": "Logging_Servers",
+          "type": "Set of str",
+          "description": "Configured logging servers"
+        },
+        {
+          "name": "Logging_Source_Interface",
+          "type": "str",
+          "description": "Source interface for communicating with logging servers"
+        },
+        {
+          "name": "NTP_Servers",
+          "type": "Set of str",
+          "description": "Configured NTP servers"
+        },
+        {
+          "name": "NTP_Source_Interface",
+          "type": "str",
+          "description": "Source interface for communicating with NTP servers"
+        },
+        {
+          "name": "PBR_Policies",
+          "type": "Set of str",
+          "description": "Names of policy-based routing (PBR) policies"
+        },
+        {
+          "name": "Route6_Filter_Lists",
+          "type": "Set of str",
+          "description": "(Deprecated) Names of structures that filter IPv6 routes (e.g., prefix lists)"
+        },
+        {
+          "name": "Route_Filter_Lists",
+          "type": "Set of str",
+          "description": "Names of structures that filter IPv4 routes (e.g., prefix lists)"
+        },
+        {
+          "name": "Routing_Policies",
+          "type": "Set of str",
+          "description": "Names of policies that manipulate routes (e.g., route maps)"
+        },
+        {
+          "name": "SNMP_Source_Interface",
+          "type": "str",
+          "description": "Source interface to use for communicating with SNMP servers"
+        },
+        {
+          "name": "SNMP_Trap_Servers",
+          "type": "Set of str",
+          "description": "Configured SNMP trap servers"
+        },
+        {
+          "name": "TACACS_Servers",
+          "type": "Set of str",
+          "description": "Configured TACACS servers"
+        },
+        {
+          "name": "TACACS_Source_Interface",
+          "type": "str",
+          "description": "Source interface to use for communicating with TACACS servers"
+        },
+        {
+          "name": "VRFs",
+          "type": "Set of str",
+          "description": "Names of VRFs present on the node"
+        },
+        {
+          "name": "Zones",
+          "type": "Set of str",
+          "description": "Names of firewall zones on the node"
+        }
+      ]
+    },
+    "interfaceProperties": {
+      "description": "Returns configuration settings of interfaces.",
+      "long_description": "Lists interface-level settings of interfaces. Settings for routing protocols, VRFs, and zones etc. that are attached to interfaces are available via other questions.",
+      "tags": [
+        "configuration"
+      ],
+      "synonyms": [
+        "interface status",
+        "interfaces",
+        "show interfaces"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Include nodes matching this specifier."
+        },
+        "interfaces": {
+          "type": "interfacesSpec",
+          "required": false,
+          "display_name": "Interfaces",
+          "description": "Include interfaces matching this specifier."
+        },
+        "properties": {
+          "type": "interfacePropertySpec",
+          "required": false,
+          "display_name": "Properties",
+          "description": "Include properties matching this specifier."
+        },
+        "excludeShutInterfaces": {
+          "type": "boolean",
+          "required": false,
+          "display_name": "Exclude Shut Interfaces",
+          "description": "Exclude interfaces that are shutdown."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Interface",
+          "type": "Interface",
+          "description": "Interface"
+        },
+        {
+          "name": "Access_VLAN",
+          "type": "int",
+          "description": "VLAN number when the switchport mode is access (null otherwise)"
+        },
+        {
+          "name": "Active",
+          "type": "bool",
+          "description": "Whether the interface is active"
+        },
+        {
+          "name": "Admin_Up",
+          "type": "bool",
+          "description": "Whether the interface is administratively enabled"
+        },
+        {
+          "name": "All_Prefixes",
+          "type": "List of str",
+          "description": "All IPv4 addresses assigned to the interface"
+        },
+        {
+          "name": "Allowed_VLANs",
+          "type": "str",
+          "description": "Allowed VLAN numbers when the switchport mode is trunk"
+        },
+        {
+          "name": "Auto_State_VLAN",
+          "type": "bool",
+          "description": "For VLAN interfaces, whether the operational status depends on member switchports"
+        },
+        {
+          "name": "Bandwidth",
+          "type": "float",
+          "description": "Nominal bandwidth in bits/sec, used for protocol cost calculations"
+        },
+        {
+          "name": "Blacklisted",
+          "type": "bool",
+          "description": "Whether the interface is considered down for maintenance"
+        },
+        {
+          "name": "Channel_Group",
+          "type": "str",
+          "description": "Name of the aggregated interface (e.g., a port channel) to which this interface belongs"
+        },
+        {
+          "name": "Channel_Group_Members",
+          "type": "List of str",
+          "description": "For aggregated interfaces (e.g., a port channel), names of constituent interfaces"
+        },
+        {
+          "name": "DHCP_Relay_Addresses",
+          "type": "List of str",
+          "description": "IPv4 addresses to which incoming DHCP requests are relayed"
+        },
+        {
+          "name": "Declared_Names",
+          "type": "List of str",
+          "description": "Any aliases explicitly defined for this interface"
+        },
+        {
+          "name": "Description",
+          "type": "str",
+          "description": "Configured interface description"
+        },
+        {
+          "name": "Encapsulation_VLAN",
+          "type": "int",
+          "description": "Number for VLAN encapsulation"
+        },
+        {
+          "name": "HSRP_Groups",
+          "type": "Set of str",
+          "description": "HSRP group identifiers"
+        },
+        {
+          "name": "HSRP_Version",
+          "type": "str",
+          "description": "HSRP version that will be used"
+        },
+        {
+          "name": "Inactive_Reason",
+          "type": "str",
+          "description": "Reason why interface is inactive"
+        },
+        {
+          "name": "Incoming_Filter_Name",
+          "type": "str",
+          "description": "Name of the input IPv4 filter"
+        },
+        {
+          "name": "MLAG_ID",
+          "type": "int",
+          "description": "MLAG identifier of the interface"
+        },
+        {
+          "name": "MTU",
+          "type": "int",
+          "description": "Layer3 MTU of the interface"
+        },
+        {
+          "name": "Native_VLAN",
+          "type": "int",
+          "description": "Native VLAN when switchport mode is trunk"
+        },
+        {
+          "name": "Outgoing_Filter_Name",
+          "type": "str",
+          "description": "Name of the output IPv4 filter"
+        },
+        {
+          "name": "PBR_Policy_Name",
+          "type": "str",
+          "description": "Name of policy-based routing (PBR) policy"
+        },
+        {
+          "name": "Primary_Address",
+          "type": "str",
+          "description": "Primary IPv4 address along with the prefix length"
+        },
+        {
+          "name": "Primary_Network",
+          "type": "str",
+          "description": "Primary IPv4 subnet, in canonical form"
+        },
+        {
+          "name": "Proxy_ARP",
+          "type": "bool",
+          "description": "Whether proxy ARP is enabled"
+        },
+        {
+          "name": "Rip_Enabled",
+          "type": "bool",
+          "description": "Whether RIP is enabled"
+        },
+        {
+          "name": "Rip_Passive",
+          "type": "bool",
+          "description": "Whether interface is in RIP passive mode"
+        },
+        {
+          "name": "Spanning_Tree_Portfast",
+          "type": "bool",
+          "description": "Whether spanning-tree portfast feature is enabled"
+        },
+        {
+          "name": "Speed",
+          "type": "float",
+          "description": "Link speed in bits/sec"
+        },
+        {
+          "name": "Switchport",
+          "type": "bool",
+          "description": "Whether the interface is configured as switchport"
+        },
+        {
+          "name": "Switchport_Mode",
+          "type": "str",
+          "description": "Switchport mode (ACCESS, DOT1Q_TUNNEL, DYNAMIC_AUTO, DYNAMIC_DESIRABLE, FEX_FABRIC, MONITOR, NONE, TAP, TOOL, TRUNK) for switchport interfaces"
+        },
+        {
+          "name": "Switchport_Trunk_Encapsulation",
+          "type": "str",
+          "description": "Encapsulation type (DOT1Q, ISL, NEGOTIATE) for switchport trunk interfaces"
+        },
+        {
+          "name": "VRF",
+          "type": "str",
+          "description": "Name of the VRF to which the interface belongs"
+        },
+        {
+          "name": "VRRP_Groups",
+          "type": "List of int",
+          "description": "All VRRP groups to which the interface belongs"
+        },
+        {
+          "name": "Zone_Name",
+          "type": "str",
+          "description": "Name of the firewall zone to which the interface belongs"
+        }
+      ]
+    },
+    "bgpProcessConfiguration": {
+      "description": "Returns configuration settings of BGP processes.",
+      "long_description": "Reports configuration settings for each BGP process on each node and VRF in the network. This question reports only process-wide settings. Peer-specific settings are reported by the bgpPeerConfiguration question.",
+      "tags": [
+        "bgp",
+        "configuration"
+      ],
+      "synonyms": [
+        "BGP process configuration",
+        "router bgp",
+        "BGP settings"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Include nodes matching this name or regex."
+        },
+        "properties": {
+          "type": "bgpProcessPropertySpec",
+          "required": false,
+          "display_name": "Properties",
+          "description": "Include properties matching this regex."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Node",
+          "type": "str",
+          "description": "Node"
+        },
+        {
+          "name": "VRF",
+          "type": "str",
+          "description": "VRF"
+        },
+        {
+          "name": "Router_ID",
+          "type": "str",
+          "description": "Router ID"
+        },
+        {
+          "name": "Confederation_ID",
+          "type": "int",
+          "description": "Externally visible autonomous system number for the confederation"
+        },
+        {
+          "name": "Confederation_Members",
+          "type": "str",
+          "description": "Set of autonomous system numbers visible only within this BGP confederation"
+        },
+        {
+          "name": "Multipath_EBGP",
+          "type": "bool",
+          "description": "Whether multipath routing is enabled for EBGP"
+        },
+        {
+          "name": "Multipath_IBGP",
+          "type": "bool",
+          "description": "Whether multipath routing is enabled for IBGP"
+        },
+        {
+          "name": "Multipath_Match_Mode",
+          "type": "str",
+          "description": "Which AS paths are considered equivalent (EXACT_PATH, FIRST_AS, PATH_LENGTH) when multipath BGP is enabled"
+        },
+        {
+          "name": "Neighbors",
+          "type": "Set of str",
+          "description": "All peers configured on this process, identified by peer address (for active and dynamic peers) or peer interface (for BGP unnumbered peers)"
+        },
+        {
+          "name": "Route_Reflector",
+          "type": "bool",
+          "description": "Whether any BGP peer in this process is configured as a route reflector client, for ipv4 unicast address family"
+        },
+        {
+          "name": "Tie_Breaker",
+          "type": "str",
+          "description": "Tie breaking mode (ARRIVAL_ORDER, CLUSTER_LIST_LENGTH, ROUTER_ID)"
+        }
+      ]
+    },
+    "bgpPeerConfiguration": {
+      "description": "Returns configuration settings for BGP peerings.",
+      "long_description": "Reports configuration settings for each configured BGP peering on each node in the network. This question reports peer-specific settings. Settings that are process-wide are reported by the bgpProcessConfiguration question.",
+      "tags": [
+        "bgp",
+        "configuration"
+      ],
+      "synonyms": [
+        "BGP neighbor configuration",
+        "BGP peers",
+        "neighbor config"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Include nodes matching this name or regex."
+        },
+        "properties": {
+          "type": "bgpPeerPropertySpec",
+          "required": false,
+          "display_name": "Properties",
+          "description": "Include properties matching this regex."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Node",
+          "type": "str",
+          "description": "Node"
+        },
+        {
+          "name": "VRF",
+          "type": "str",
+          "description": "VRF"
+        },
+        {
+          "name": "Local_AS",
+          "type": "int",
+          "description": "Local AS number"
+        },
+        {
+          "name": "Local_IP",
+          "type": "str",
+          "description": "Local IPv4 address (null for BGP unnumbered peers)"
+        },
+        {
+          "name": "Local_Interface",
+          "type": "str",
+          "description": "Local Interface"
+        },
+        {
+          "name": "Confederation",
+          "type": "int",
+          "description": "Confederation AS number"
+        },
+        {
+          "name": "Remote_AS",
+          "type": "str",
+          "description": "Remote AS numbers with which this peer may establish a session"
+        },
+        {
+          "name": "Remote_IP",
+          "type": "str",
+          "description": "Remote IP"
+        },
+        {
+          "name": "Description",
+          "type": "str",
+          "description": "Configured peer description"
+        },
+        {
+          "name": "Route_Reflector_Client",
+          "type": "bool",
+          "description": "Whether this peer is a route reflector client"
+        },
+        {
+          "name": "Cluster_ID",
+          "type": "str",
+          "description": "Cluster ID of this peer (null for peers that are not route reflector clients)"
+        },
+        {
+          "name": "Peer_Group",
+          "type": "str",
+          "description": "Name of the BGP peer group to which this peer belongs"
+        },
+        {
+          "name": "Import_Policy",
+          "type": "Set of str",
+          "description": "Names of import policies to be applied to routes received by this peer"
+        },
+        {
+          "name": "Export_Policy",
+          "type": "Set of str",
+          "description": "Names of export policies to be applied to routes exported by this peer"
+        },
+        {
+          "name": "Send_Community",
+          "type": "bool",
+          "description": "Whether this peer propagates communities"
+        },
+        {
+          "name": "Is_Passive",
+          "type": "bool",
+          "description": "Whether this peer is passive"
+        }
+      ]
+    },
+    "hsrpProperties": {
+      "description": "Returns configuration settings of HSRP groups.",
+      "long_description": "Lists information about HSRP groups on interfaces.",
+      "tags": [
+        "configuration",
+        "hsrp"
+      ],
+      "synonyms": [
+        "HSRP groups",
+        "standby gateway",
+        "redundant gateway",
+        "first-hop redundancy"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Include nodes matching this specifier."
+        },
+        "interfaces": {
+          "type": "interfacesSpec",
+          "required": false,
+          "display_name": "Interfaces",
+          "description": "Include interfaces matching this specifier."
+        },
+        "virtualAddresses": {
+          "type": "ipSpaceSpec",
+          "required": false,
+          "display_name": "Virtual Addresses",
+          "description": "Include only groups with at least one virtual address matching this specifier."
+        },
+        "excludeShutInterfaces": {
+          "type": "boolean",
+          "required": false,
+          "display_name": "Exclude Shut Interfaces",
+          "description": "Exclude interfaces that are shutdown."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Interface",
+          "type": "Interface",
+          "description": "Interface"
+        },
+        {
+          "name": "Group_Id",
+          "type": "int",
+          "description": "HSRP Group ID"
+        },
+        {
+          "name": "Virtual_Addresses",
+          "type": "Set of str",
+          "description": "Virtual Addresses"
+        },
+        {
+          "name": "Source_Address",
+          "type": "str",
+          "description": "Source Address used for HSRP messages"
+        },
+        {
+          "name": "Priority",
+          "type": "int",
+          "description": "HSRP router priority"
+        },
+        {
+          "name": "Preempt",
+          "type": "bool",
+          "description": "Whether preemption is allowed"
+        },
+        {
+          "name": "Active",
+          "type": "bool",
+          "description": "Whether the interface is active"
+        }
+      ]
+    },
+    "ospfProcessConfiguration": {
+      "description": "Returns configuration parameters for OSPF routing processes.",
+      "long_description": "Returns the values of important properties for all OSPF processes running across the network.",
+      "tags": [
+        "configuration",
+        "ospf"
+      ],
+      "synonyms": [
+        "OSPF process configuration",
+        "router ospf",
+        "OSPF settings"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Include nodes matching this name or regex."
+        },
+        "properties": {
+          "type": "ospfProcessPropertySpec",
+          "required": false,
+          "display_name": "Properties",
+          "description": "Include properties matching this specifier."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Node",
+          "type": "str",
+          "description": "Node"
+        },
+        {
+          "name": "VRF",
+          "type": "str",
+          "description": "VRF name"
+        },
+        {
+          "name": "Process_ID",
+          "type": "str",
+          "description": "Process ID"
+        },
+        {
+          "name": "Areas",
+          "type": "Set of str",
+          "description": "All OSPF areas for this process"
+        },
+        {
+          "name": "Reference_Bandwidth",
+          "type": "float",
+          "description": "Reference bandwidth in bits/sec used to calculate interface OSPF cost"
+        },
+        {
+          "name": "Router_ID",
+          "type": "str",
+          "description": "Router ID of the process"
+        },
+        {
+          "name": "Export_Policy_Sources",
+          "type": "Set of str",
+          "description": "Names of policies that determine which routes are exported into OSPF"
+        },
+        {
+          "name": "Area_Border_Router",
+          "type": "bool",
+          "description": "Whether this process is at the area border (with at least one interface in Area 0 and one in another area)"
+        }
+      ]
+    },
+    "ospfInterfaceConfiguration": {
+      "description": "Returns OSPF configuration of interfaces.",
+      "long_description": "Returns the interface level OSPF configuration details for the interfaces in the network which run OSPF.",
+      "tags": [
+        "configuration",
+        "ospf"
+      ],
+      "synonyms": [
+        "OSPF interface configuration",
+        "OSPF interface settings"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Include nodes matching this specifier."
+        },
+        "properties": {
+          "type": "ospfInterfacePropertySpec",
+          "required": false,
+          "display_name": "Properties",
+          "description": "Include properties matching this specifier."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Interface",
+          "type": "Interface",
+          "description": "Interface"
+        },
+        {
+          "name": "VRF",
+          "type": "str",
+          "description": "VRF name"
+        },
+        {
+          "name": "Process_ID",
+          "type": "str",
+          "description": "Process ID"
+        },
+        {
+          "name": "OSPF_Area_Name",
+          "type": "int",
+          "description": "OSPF area to which the interface belongs"
+        },
+        {
+          "name": "OSPF_Enabled",
+          "type": "bool",
+          "description": "Whether OSPF is enabled"
+        },
+        {
+          "name": "OSPF_Passive",
+          "type": "bool",
+          "description": "Whether interface is in OSPF passive mode"
+        },
+        {
+          "name": "OSPF_Cost",
+          "type": "int",
+          "description": "OSPF cost if explicitly configured"
+        },
+        {
+          "name": "OSPF_Network_Type",
+          "type": "str",
+          "description": "Type of OSPF network associated with the interface"
+        },
+        {
+          "name": "OSPF_Hello_Interval",
+          "type": "int",
+          "description": "Interval in seconds between sending OSPF hello messages"
+        },
+        {
+          "name": "OSPF_Dead_Interval",
+          "type": "int",
+          "description": "Interval in seconds before a silent OSPF neighbor is declared dead"
+        }
+      ]
+    },
+    "ospfAreaConfiguration": {
+      "description": "Returns configuration parameters of OSPF areas.",
+      "long_description": "Returns information about all OSPF areas defined across the network.",
+      "tags": [
+        "configuration",
+        "ospf"
+      ],
+      "synonyms": [
+        "OSPF areas",
+        "area configuration"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Include nodes matching this name or regex."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Node",
+          "type": "str",
+          "description": "Node"
+        },
+        {
+          "name": "VRF",
+          "type": "str",
+          "description": "VRF"
+        },
+        {
+          "name": "Process_ID",
+          "type": "str",
+          "description": "Process ID"
+        },
+        {
+          "name": "Area",
+          "type": "str",
+          "description": "Area number"
+        },
+        {
+          "name": "Area_Type",
+          "type": "str",
+          "description": "Area type"
+        },
+        {
+          "name": "Active_Interfaces",
+          "type": "Set of str",
+          "description": "Names of active interfaces"
+        },
+        {
+          "name": "Passive_Interfaces",
+          "type": "Set of str",
+          "description": "Names of passive interfaces"
+        }
+      ]
+    },
+    "mlagProperties": {
+      "description": "Returns MLAG configuration.",
+      "long_description": "Lists the configuration settings for each MLAG domain in the network.",
+      "tags": [
+        "configuration",
+        "mlag"
+      ],
+      "synonyms": [
+        "MLAG",
+        "multi-chassis LAG",
+        "vPC",
+        "switch pairing"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Include nodes matching this specifier."
+        },
+        "mlagIds": {
+          "type": "mlagIdSpec",
+          "required": false,
+          "display_name": "MLAG IDs",
+          "description": "Include MLAG IDs matching this specifier."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Node",
+          "type": "str",
+          "description": "Node name"
+        },
+        {
+          "name": "MLAG_ID",
+          "type": "str",
+          "description": "MLAG domain ID"
+        },
+        {
+          "name": "Peer_Address",
+          "type": "str",
+          "description": "Peer's IP address"
+        },
+        {
+          "name": "Local_Interface",
+          "type": "Interface",
+          "description": "Local interface used for MLAG peering"
+        },
+        {
+          "name": "Source_Interface",
+          "type": "Interface",
+          "description": "Local interface used as source-interface for MLAG peering"
+        }
+      ]
+    },
+    "ipOwners": {
+      "description": "Returns where IP addresses are attached in the network.",
+      "long_description": "For each device, lists the mapping from IPs to corresponding interface(s) and VRF(s).",
+      "tags": [
+        "configuration"
+      ],
+      "synonyms": [
+        "IP ownership",
+        "duplicate IP",
+        "IP conflict",
+        "who owns an IP"
+      ],
+      "differential": false,
+      "inputs": {
+        "ips": {
+          "type": "ipSpaceSpec",
+          "required": false,
+          "display_name": "IP specifier",
+          "description": "Restrict output to only specified IP addresses."
+        },
+        "duplicatesOnly": {
+          "type": "boolean",
+          "required": false,
+          "display_name": "Duplicates Only",
+          "description": "Restrict output to only IP addresses that are duplicated (configured on a different node or VRF) in the snapshot.",
+          "default": false
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Node",
+          "type": "str",
+          "description": "Node hostname"
+        },
+        {
+          "name": "VRF",
+          "type": "str",
+          "description": "VRF name"
+        },
+        {
+          "name": "Interface",
+          "type": "str",
+          "description": "Interface name"
+        },
+        {
+          "name": "IP",
+          "type": "str",
+          "description": "IP address"
+        },
+        {
+          "name": "Mask",
+          "type": "int",
+          "description": "Network mask length"
+        },
+        {
+          "name": "Active",
+          "type": "bool",
+          "description": "Whether the interface is active"
+        }
+      ]
+    },
+    "namedStructures": {
+      "description": "Returns named structure definitions.",
+      "long_description": "Return structures defined in the configurations, represented in a vendor-independent JSON format.",
+      "tags": [
+        "configuration"
+      ],
+      "synonyms": [
+        "named structures",
+        "named ACLs/route-maps",
+        "object groups"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Include nodes matching this specifier."
+        },
+        "structureTypes": {
+          "type": "namedStructureSpec",
+          "required": false,
+          "display_name": "Structure types",
+          "description": "Include structures of this type."
+        },
+        "structureNames": {
+          "type": "structureName",
+          "required": false,
+          "display_name": "Structure names",
+          "description": "Include structures matching this name or regex."
+        },
+        "ignoreGenerated": {
+          "type": "boolean",
+          "required": false,
+          "display_name": "Ignore auto-generated structures",
+          "description": "Whether to ignore auto-generated structures.",
+          "default": true
+        },
+        "indicatePresence": {
+          "type": "boolean",
+          "required": false,
+          "display_name": "Indicate presence",
+          "description": "Output if the structure is present or absent."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Node",
+          "type": "str",
+          "description": "Node"
+        },
+        {
+          "name": "Structure_Type",
+          "type": "str",
+          "description": "Structure type"
+        },
+        {
+          "name": "Structure_Name",
+          "type": "str",
+          "description": "Structure name"
+        },
+        {
+          "name": "Structure_Definition",
+          "type": "dict",
+          "description": "Structure definition"
+        }
+      ]
+    },
+    "definedStructures": {
+      "description": "Lists the structures defined in the network.",
+      "long_description": "Lists the structures defined in the network, along with the files and line numbers in which they are defined.",
+      "tags": [
+        "configuration"
+      ],
+      "synonyms": [
+        "defined structures",
+        "where is an ACL defined"
+      ],
+      "differential": false,
+      "inputs": {
+        "filename": {
+          "type": "string",
+          "required": false,
+          "display_name": "Filename",
+          "description": "Include structures defined in the given file."
+        },
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Include files used to generate nodes whose name matches this specifier.",
+          "default": ".*"
+        },
+        "names": {
+          "type": "structureName",
+          "required": false,
+          "display_name": "Names",
+          "description": "Include structures whose name matches this string or regex.",
+          "default": ".*"
+        },
+        "types": {
+          "type": "javaRegex",
+          "required": false,
+          "display_name": "Types",
+          "description": "Include structures whose vendor-specific type matches this string or regex.",
+          "default": ".*"
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Structure_Type",
+          "type": "str",
+          "description": "Vendor-specific type of the structure"
+        },
+        {
+          "name": "Structure_Name",
+          "type": "str",
+          "description": "Name of the structure"
+        },
+        {
+          "name": "Source_Lines",
+          "type": "FileLines",
+          "description": "File and line numbers where the structure is defined"
+        }
+      ]
+    },
+    "referencedStructures": {
+      "description": "Lists the references in configuration files to vendor-specific structures.",
+      "long_description": "Lists the references in configuration files to vendor-specific structures, along with the line number, the name and the type of the structure referenced, and configuration context in which each reference occurs.",
+      "tags": [
+        "configuration"
+      ],
+      "synonyms": [
+        "referenced structures",
+        "where is an ACL used"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Include files used to generate nodes whose name matches this specifier."
+        },
+        "names": {
+          "type": "structureName",
+          "required": false,
+          "display_name": "Names",
+          "description": "Include structures whose name matches this string or regex."
+        },
+        "types": {
+          "type": "javaRegex",
+          "required": false,
+          "display_name": "Types",
+          "description": "Include structures whose vendor-specific type matches this string or regex."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Structure_Type",
+          "type": "str",
+          "description": "Type of structure referenced"
+        },
+        {
+          "name": "Structure_Name",
+          "type": "str",
+          "description": "The referenced structure"
+        },
+        {
+          "name": "Context",
+          "type": "str",
+          "description": "Configuration context in which the reference appears"
+        },
+        {
+          "name": "Source_Lines",
+          "type": "FileLines",
+          "description": "Lines where reference appears"
+        }
+      ]
+    },
+    "undefinedReferences": {
+      "description": "Identifies undefined references in configuration.",
+      "long_description": "Finds configurations that have references to named structures (e.g., ACLs) that are not defined. Such occurrences indicate errors and can have serious consequences in some cases.",
+      "tags": [
+        "hygiene"
+      ],
+      "synonyms": [
+        "undefined references",
+        "missing ACL/route-map references",
+        "dangling references"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Look for undefined references on nodes matching this name or regex.",
+          "default": ".*"
+        }
+      },
+      "output_columns": [
+        {
+          "name": "File_Name",
+          "type": "str",
+          "description": "File containing reference"
+        },
+        {
+          "name": "Struct_Type",
+          "type": "str",
+          "description": "Type of struct reference is supposed to be"
+        },
+        {
+          "name": "Ref_Name",
+          "type": "str",
+          "description": "The undefined reference"
+        },
+        {
+          "name": "Context",
+          "type": "str",
+          "description": "Context of undefined reference"
+        },
+        {
+          "name": "Lines",
+          "type": "FileLines",
+          "description": "Lines where reference appears"
+        }
+      ]
+    },
+    "unusedStructures": {
+      "description": "Returns nodes with structures such as ACLs, routemaps, etc. that are defined but not used.",
+      "long_description": "Return nodes with structures such as ACLs, routes, etc. that are defined but not used. This may represent a bug in the configuration, which may have occurred because a final step in a template or MOP was not completed. Or it could be harmless extra configuration generated from a master template that is not meant to be used on those nodes.",
+      "tags": [
+        "hygiene"
+      ],
+      "synonyms": [
+        "unused structures",
+        "unreferenced ACLs",
+        "dead configuration"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Look for unused structures on nodes matching this name or regex.",
+          "default": ".*"
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Structure_Type",
+          "type": "str",
+          "description": "Vendor-specific type of the structure"
+        },
+        {
+          "name": "Structure_Name",
+          "type": "str",
+          "description": "Name of the structure"
+        },
+        {
+          "name": "Source_Lines",
+          "type": "FileLines",
+          "description": "File and line numbers where the structure is defined"
+        }
+      ]
+    },
+    "switchedVlanProperties": {
+      "description": "Returns configuration settings of switched VLANs.",
+      "long_description": "Lists information about implicitly and explicitly configured switched VLANs.",
+      "tags": [
+        "configuration",
+        "vlan"
+      ],
+      "synonyms": [
+        "VLAN membership",
+        "switchport VLANs",
+        "show vlan"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Include nodes matching this specifier."
+        },
+        "interfaces": {
+          "type": "interfacesSpec",
+          "required": false,
+          "display_name": "Interfaces",
+          "description": "Include interfaces matching this specifier."
+        },
+        "vlans": {
+          "type": "integerSpace",
+          "required": false,
+          "display_name": "VLANs",
+          "description": "Include VLANs in this space."
+        },
+        "excludeShutInterfaces": {
+          "type": "boolean",
+          "required": false,
+          "display_name": "Exclude Shut Interfaces",
+          "description": "Exclude interfaces that are shutdown."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Node",
+          "type": "str",
+          "description": "Node"
+        },
+        {
+          "name": "VLAN_ID",
+          "type": "int",
+          "description": "VLAN_ID"
+        },
+        {
+          "name": "Interfaces",
+          "type": "Set of Interface",
+          "description": "Switched interfaces carrying traffic for this VLAN"
+        },
+        {
+          "name": "VXLAN_VNI",
+          "type": "int",
+          "description": "VXLAN VNI with which this VLAN is associated"
+        }
+      ]
+    },
+    "vrrpProperties": {
+      "description": "Returns configuration settings of VRRP groups.",
+      "long_description": "Lists information about VRRP groups on interfaces.",
+      "tags": [
+        "configuration",
+        "vrrp"
+      ],
+      "synonyms": [
+        "VRRP groups",
+        "virtual router",
+        "redundant gateway",
+        "first-hop redundancy"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Include nodes matching this specifier."
+        },
+        "interfaces": {
+          "type": "interfacesSpec",
+          "required": false,
+          "display_name": "Interfaces",
+          "description": "Include interfaces matching this specifier."
+        },
+        "virtualAddresses": {
+          "type": "ipSpaceSpec",
+          "required": false,
+          "display_name": "Virtual Addresses",
+          "description": "Include only groups with at least one virtual address matching this specifier."
+        },
+        "excludeShutInterfaces": {
+          "type": "boolean",
+          "required": false,
+          "display_name": "Exclude Shut Interfaces",
+          "description": "Exclude interfaces that are shutdown."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Interface",
+          "type": "Interface",
+          "description": "Interface"
+        },
+        {
+          "name": "Group_Id",
+          "type": "int",
+          "description": "VRRP Group ID"
+        },
+        {
+          "name": "Virtual_Addresses",
+          "type": "Set of str",
+          "description": "Virtual Addresses"
+        },
+        {
+          "name": "Source_Address",
+          "type": "str",
+          "description": "Source Address used for VRRP messages"
+        },
+        {
+          "name": "Priority",
+          "type": "int",
+          "description": "VRRP router priority"
+        },
+        {
+          "name": "Preempt",
+          "type": "bool",
+          "description": "Whether preemption is allowed"
+        },
+        {
+          "name": "Active",
+          "type": "bool",
+          "description": "Whether the interface is active"
+        }
+      ]
+    },
+    "a10VirtualServerConfiguration": {
+      "description": "Returns Virtual Server configuration of A10 devices.",
+      "long_description": "Lists all the virtual-server to service-group to server mappings in A10 configurations.",
+      "tags": [
+        "configuration",
+        "vip"
+      ],
+      "synonyms": [
+        "A10 load balancer",
+        "A10 virtual server",
+        "VIP configuration"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Include nodes matching this name or regex."
+        },
+        "virtualServerIps": {
+          "type": "ipSpaceSpec",
+          "required": false,
+          "display_name": "Virtual Server IPs",
+          "description": "Include virtual servers whose IP match this specifier."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Node",
+          "type": "str",
+          "description": "Node"
+        },
+        {
+          "name": "Virtual_Server_Name",
+          "type": "str",
+          "description": "Virtual Server Name"
+        },
+        {
+          "name": "Virtual_Server_Enabled",
+          "type": "bool",
+          "description": "Virtual Server Enabled"
+        },
+        {
+          "name": "Virtual_Server_IP",
+          "type": "str",
+          "description": "Virtual Server IP"
+        },
+        {
+          "name": "Virtual_Server_Port",
+          "type": "int",
+          "description": "Virtual Server Port"
+        },
+        {
+          "name": "Virtual_Server_Port_Enabled",
+          "type": "bool",
+          "description": "Virtual Server Port Enabled"
+        },
+        {
+          "name": "Virtual_Server_Type",
+          "type": "str",
+          "description": "Virtual Server Type"
+        },
+        {
+          "name": "Virtual_Server_Port_Type_Name",
+          "type": "str",
+          "description": "Virtual Server Port Type Name"
+        },
+        {
+          "name": "Service_Group_Name",
+          "type": "str",
+          "description": "Service Group Name"
+        },
+        {
+          "name": "Service_Group_Type",
+          "type": "str",
+          "description": "Service Group Type"
+        },
+        {
+          "name": "Servers",
+          "type": "Set of List of str",
+          "description": "List of Servers. Each item is a 4-tuple: Server Name, Port, IP Address, and Active Status."
+        },
+        {
+          "name": "Source_NAT_Pool_Name",
+          "type": "str",
+          "description": "Source NAT Pool Name"
+        }
+      ]
+    },
+    "f5BigipVipConfiguration": {
+      "description": "Returns VIP configuration of F5 BIG-IP devices.",
+      "long_description": "Lists all the VIP to server IP mappings contained in F5 BIP-IP configurations.",
+      "tags": [
+        "configuration",
+        "vip"
+      ],
+      "synonyms": [
+        "F5 load balancer",
+        "F5 VIP",
+        "BIG-IP virtual server"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Include nodes matching this name or regex."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Node",
+          "type": "str",
+          "description": "Node"
+        },
+        {
+          "name": "VIP_Name",
+          "type": "str",
+          "description": "Virtual Service Name"
+        },
+        {
+          "name": "VIP_Endpoint",
+          "type": "str",
+          "description": "Virtual Service Endpoint"
+        },
+        {
+          "name": "Servers",
+          "type": "Set of str",
+          "description": "Servers"
+        },
+        {
+          "name": "Description",
+          "type": "str",
+          "description": "Description"
+        }
+      ]
+    },
+    "userProvidedLayer1Edges": {
+      "description": "Returns normalized Layer 1 edges that were input to Batfish.",
+      "long_description": "Lists Layer 1 edges after potentially normalizing node and interface names. All node names are lower-cased, and for nodes that appear in the snapshot, interface names are canonicalized based on the vendor. All input edges are in the output, including nodes and interfaces that do not appear in the snapshot.",
+      "tags": [
+        "topology"
+      ],
+      "synonyms": [
+        "layer 1 topology",
+        "physical links",
+        "L1 edges"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Include edges whose first node matches this name or regex.",
+          "default": ".*"
+        },
+        "remoteNodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Remote Nodes",
+          "description": "Include edges whose second node matches this name or regex.",
+          "default": ".*"
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Interface",
+          "type": "Interface",
+          "description": "Interface from which the edge originates"
+        },
+        {
+          "name": "Remote_Interface",
+          "type": "Interface",
+          "description": "Interface at which the edge terminates"
+        }
+      ]
+    },
+    "layer3Edges": {
+      "description": "Returns Layer 3 links.",
+      "long_description": "Lists all Layer 3 edges in the network.",
+      "tags": [
+        "topology"
+      ],
+      "synonyms": [
+        "layer 3 topology",
+        "L3 links",
+        "network topology",
+        "neighbors"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Include edges whose first node matches this name or regex.",
+          "default": ".*"
+        },
+        "remoteNodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Remote Nodes",
+          "description": "Include edges whose second node matches this name or regex.",
+          "default": ".*"
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Interface",
+          "type": "Interface",
+          "description": "Interface from which the edge originates"
+        },
+        {
+          "name": "IPs",
+          "type": "Set of str",
+          "description": "IPs"
+        },
+        {
+          "name": "Remote_Interface",
+          "type": "Interface",
+          "description": "Interface at which the edge terminates"
+        },
+        {
+          "name": "Remote_IPs",
+          "type": "Set of str",
+          "description": "Remote IPs"
+        }
+      ]
+    },
+    "bgpSessionCompatibility": {
+      "description": "Returns the compatibility of configured BGP sessions.",
+      "long_description": "Checks the settings of each configured BGP peering and reports any issue with those settings locally or incompatiblity with its remote counterparts. Each row represents one configured BGP peering on a node and contains information about the session it is meant to establish. For dynamic peers, there is one row per compatible remote peer. Statuses that indicate an independently misconfigured peerings include NO_LOCAL_AS, NO_REMOTE_AS, NO_LOCAL_IP (for eBGP single-hop peerings), LOCAL_IP_UNKNOWN_STATICALLY (for iBGP or eBGP multi-hop peerings), NO_REMOTE_IP (for point-to-point peerings), and NO_REMOTE_PREFIX (for dynamic peerings). INVALID_LOCAL_IP indicates that the peering's configured local IP does not belong to any active interface on the node; UNKNOWN_REMOTE indicates that the configured remote IP is not present in the network. A locally valid point-to-point peering is deemed HALF_OPEN if it has no compatible remote peers, UNIQUE_MATCH if it has exactly one compatible remote peer, or MULTIPLE_REMOTES if it has multiple compatible remote peers. A locally valid dynamic peering is deemed NO_MATCH_FOUND if it has no compatible remote peers, or DYNAMIC_MATCH if it has at least one compatible remote peer.",
+      "tags": [
+        "bgp",
+        "status"
+      ],
+      "synonyms": [
+        "BGP compatibility",
+        "why is BGP down",
+        "BGP misconfiguration",
+        "BGP session mismatch"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Include sessions whose first node matches this specifier."
+        },
+        "remoteNodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Remote Nodes",
+          "description": "Include sessions whose second node matches this specifier."
+        },
+        "status": {
+          "type": "bgpSessionCompatStatusSpec",
+          "required": false,
+          "display_name": "Compatibility Status",
+          "description": "Only include sessions for which compatibility status matches this specifier.",
+          "allowed_values": [
+            {
+              "value": "LOCAL_IP_UNKNOWN_STATICALLY",
+              "description": "Local IP for an iBGP or multihop eBGP session is not configured."
+            },
+            {
+              "value": "NO_LOCAL_IP",
+              "description": "Local IP for a single-hop eBGP session is not configured."
+            },
+            {
+              "value": "NO_LOCAL_AS",
+              "description": "Local AS for the session is not configured."
+            },
+            {
+              "value": "NO_REMOTE_IP",
+              "description": "Remote IP for a point-to-point peer is not configured."
+            },
+            {
+              "value": "NO_REMOTE_PREFIX",
+              "description": "Remote prefix for a dynamic peer is not configured."
+            },
+            {
+              "value": "NO_REMOTE_AS",
+              "description": "Remote AS for the session is not configured."
+            },
+            {
+              "value": "INVALID_LOCAL_IP",
+              "description": "Configured local IP does not belong to any active interface."
+            },
+            {
+              "value": "UNKNOWN_REMOTE",
+              "description": "Configured remote IP is not present in the network snapshot."
+            },
+            {
+              "value": "HALF_OPEN",
+              "description": "No compatible match found for a point-to-point peer."
+            },
+            {
+              "value": "MULTIPLE_REMOTES",
+              "description": "Multiple compatible matches found for a point-to-point peer."
+            },
+            {
+              "value": "UNIQUE_MATCH",
+              "description": "Exactly one match found for a point-to-point peer."
+            },
+            {
+              "value": "DYNAMIC_MATCH",
+              "description": "At least one compatible match found for a dynamic peer."
+            },
+            {
+              "value": "NO_MATCH_FOUND",
+              "description": "No compatible match found for a dynamic peer."
+            }
+          ]
+        },
+        "type": {
+          "type": "bgpSessionTypeSpec",
+          "required": false,
+          "display_name": "Type",
+          "description": "Only include sessions that match this specifier.",
+          "allowed_values": [
+            {
+              "value": "IBGP",
+              "description": "Internal BGP session."
+            },
+            {
+              "value": "EBGP_SINGLEHOP",
+              "description": "Single-hop external BGP session."
+            },
+            {
+              "value": "EBGP_MULTIHOP",
+              "description": "Multihop external BGP session."
+            },
+            {
+              "value": "EBGP_UNNUMBERED",
+              "description": "Unnumbered external BGP session."
+            },
+            {
+              "value": "IBGP_UNNUMBERED",
+              "description": "Unnumbered internal BGP session."
+            },
+            {
+              "value": "UNSET",
+              "description": "Session type is not set."
+            }
+          ]
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Node",
+          "type": "str",
+          "description": "The node where this session is configured"
+        },
+        {
+          "name": "VRF",
+          "type": "str",
+          "description": "The VRF in which this session is configured"
+        },
+        {
+          "name": "Local_AS",
+          "type": "int",
+          "description": "The local AS of the session"
+        },
+        {
+          "name": "Local_Interface",
+          "type": "Interface",
+          "description": "Local interface of the session"
+        },
+        {
+          "name": "Local_IP",
+          "type": "str",
+          "description": "The local IP of the session"
+        },
+        {
+          "name": "Remote_AS",
+          "type": "str",
+          "description": "The remote AS or list of ASes of the session"
+        },
+        {
+          "name": "Remote_Node",
+          "type": "str",
+          "description": "Remote node for this session"
+        },
+        {
+          "name": "Remote_Interface",
+          "type": "Interface",
+          "description": "Remote interface for this session"
+        },
+        {
+          "name": "Remote_IP",
+          "type": "str",
+          "description": "Remote IP or prefix for this session"
+        },
+        {
+          "name": "Address_Families",
+          "type": "Set of str",
+          "description": "Address Families participating in this session"
+        },
+        {
+          "name": "Session_Type",
+          "type": "str",
+          "description": "The type of this session"
+        },
+        {
+          "name": "Configured_Status",
+          "type": "str",
+          "description": "Configured status"
+        }
+      ]
+    },
+    "bgpSessionStatus": {
+      "description": "Returns the dynamic status of configured BGP sessions.",
+      "long_description": "Checks whether configured BGP peerings can be established. Each row represents one configured BGP peering and contains information about the session it is configured to establish. For dynamic peerings, one row is shown per compatible remote peer. Possible statuses for each session are NOT_COMPATIBLE, ESTABLISHED, and NOT_ESTABLISHED. NOT_COMPATIBLE sessions are those where one or both peers are misconfigured; the BgpSessionCompatibility question provides further insight into the nature of the configuration error. NOT_ESTABLISHED sessions are those that are configured compatibly but will not come up because peers cannot reach each other (e.g., due to being blocked by an ACL). ESTABLISHED sessions are those that are compatible and are expected to come up.",
+      "tags": [
+        "bgp",
+        "dataplane",
+        "status"
+      ],
+      "synonyms": [
+        "BGP neighbor status",
+        "BGP session up/down",
+        "BGP established",
+        "show ip bgp summary"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Include sessions whose first node matches this specifier."
+        },
+        "remoteNodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Remote Nodes",
+          "description": "Include sessions whose second node matches this specifier."
+        },
+        "status": {
+          "type": "bgpSessionStatusSpec",
+          "required": false,
+          "display_name": "Status",
+          "description": "Only include sessions for which status matches this specifier.",
+          "allowed_values": [
+            {
+              "value": "NOT_COMPATIBLE",
+              "description": "The BGP session is not compatibly configured."
+            },
+            {
+              "value": "NOT_ESTABLISHED",
+              "description": "The session is compatibly configured but was not established."
+            },
+            {
+              "value": "ESTABLISHED",
+              "description": "The BGP session is established."
+            }
+          ]
+        },
+        "type": {
+          "type": "bgpSessionTypeSpec",
+          "required": false,
+          "display_name": "Type",
+          "description": "Only include sessions that match this specifier.",
+          "allowed_values": [
+            {
+              "value": "IBGP",
+              "description": "Internal BGP session."
+            },
+            {
+              "value": "EBGP_SINGLEHOP",
+              "description": "Single-hop external BGP session."
+            },
+            {
+              "value": "EBGP_MULTIHOP",
+              "description": "Multihop external BGP session."
+            },
+            {
+              "value": "EBGP_UNNUMBERED",
+              "description": "Unnumbered external BGP session."
+            },
+            {
+              "value": "IBGP_UNNUMBERED",
+              "description": "Unnumbered internal BGP session."
+            },
+            {
+              "value": "UNSET",
+              "description": "Session type is not set."
+            }
+          ]
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Node",
+          "type": "str",
+          "description": "The node where this session is configured"
+        },
+        {
+          "name": "VRF",
+          "type": "str",
+          "description": "The VRF in which this session is configured"
+        },
+        {
+          "name": "Local_AS",
+          "type": "int",
+          "description": "The local AS of the session"
+        },
+        {
+          "name": "Local_Interface",
+          "type": "Interface",
+          "description": "Local interface of the session"
+        },
+        {
+          "name": "Local_IP",
+          "type": "str",
+          "description": "The local IP of the session"
+        },
+        {
+          "name": "Remote_AS",
+          "type": "str",
+          "description": "The remote AS or list of ASes of the session"
+        },
+        {
+          "name": "Remote_Node",
+          "type": "str",
+          "description": "Remote node for this session"
+        },
+        {
+          "name": "Remote_Interface",
+          "type": "Interface",
+          "description": "Remote interface for this session"
+        },
+        {
+          "name": "Remote_IP",
+          "type": "str",
+          "description": "Remote IP or prefix for this session"
+        },
+        {
+          "name": "Address_Families",
+          "type": "Set of str",
+          "description": "Address Families participating in this session"
+        },
+        {
+          "name": "Session_Type",
+          "type": "str",
+          "description": "The type of this session"
+        },
+        {
+          "name": "Established_Status",
+          "type": "str",
+          "description": "Established status"
+        }
+      ]
+    },
+    "bgpEdges": {
+      "description": "Returns BGP adjacencies.",
+      "long_description": "Lists all BGP adjacencies in the network.",
+      "tags": [
+        "topology",
+        "bgp"
+      ],
+      "synonyms": [
+        "BGP topology",
+        "BGP adjacencies",
+        "BGP neighbors"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Include adjacencies whose first node matches this name or regex.",
+          "default": ".*"
+        },
+        "remoteNodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Remote Nodes",
+          "description": "Include adjacencies whose second node matches this name or regex.",
+          "default": ".*"
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Node",
+          "type": "str",
+          "description": "Node from which the edge originates"
+        },
+        {
+          "name": "IP",
+          "type": "str",
+          "description": "IP at the side of originator"
+        },
+        {
+          "name": "Interface",
+          "type": "str",
+          "description": "Interface at which the edge originates"
+        },
+        {
+          "name": "AS_Number",
+          "type": "str",
+          "description": "AS Number at the side of originator"
+        },
+        {
+          "name": "Remote_Node",
+          "type": "str",
+          "description": "Node at which the edge terminates"
+        },
+        {
+          "name": "Remote_IP",
+          "type": "str",
+          "description": "IP at the side of the responder"
+        },
+        {
+          "name": "Remote_Interface",
+          "type": "str",
+          "description": "Interface at which the edge terminates"
+        },
+        {
+          "name": "Remote_AS_Number",
+          "type": "str",
+          "description": "AS Number at the side of responder"
+        }
+      ]
+    },
+    "ospfSessionCompatibility": {
+      "description": "Returns compatible OSPF sessions.",
+      "long_description": "Returns compatible OSPF sessions in the network. A session is compatible if the interfaces involved are not shutdown and do run OSPF, are not OSPF passive and are associated with the same OSPF area.",
+      "tags": [
+        "ospf",
+        "dataplane",
+        "status"
+      ],
+      "synonyms": [
+        "OSPF compatibility",
+        "why is OSPF adjacency down",
+        "OSPF mismatch"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Include nodes matching this name or regex."
+        },
+        "remoteNodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Remote Nodes",
+          "description": "Include remote nodes matching this name or regex."
+        },
+        "statuses": {
+          "type": "ospfSessionStatusSpec",
+          "required": false,
+          "display_name": "Session Statuses",
+          "description": "Only include sessions matching this status specifier.",
+          "allowed_values": [
+            {
+              "value": "AREA_INVALID",
+              "description": "The OSPF area is invalid."
+            },
+            {
+              "value": "AREA_MISMATCH",
+              "description": "The area does not match the neighbor."
+            },
+            {
+              "value": "AREA_TYPE_MISMATCH",
+              "description": "The area type does not match."
+            },
+            {
+              "value": "DEAD_INTERVAL_MISMATCH",
+              "description": "Dead intervals do not match."
+            },
+            {
+              "value": "DUPLICATE_ROUTER_ID",
+              "description": "Duplicate router ID."
+            },
+            {
+              "value": "ESTABLISHED",
+              "description": "The OSPF session is established."
+            },
+            {
+              "value": "HELLO_INTERVAL_MISMATCH",
+              "description": "Hello intervals do not match."
+            },
+            {
+              "value": "MTU_MISMATCH",
+              "description": "Interface MTUs do not match."
+            },
+            {
+              "value": "NETWORK_TYPE_MISMATCH",
+              "description": "Network types do not match."
+            },
+            {
+              "value": "NO_SESSION",
+              "description": "No OSPF session."
+            },
+            {
+              "value": "PASSIVE_MISMATCH",
+              "description": "Passive settings do not match."
+            },
+            {
+              "value": "PROCESS_INVALID",
+              "description": "The OSPF process is invalid."
+            },
+            {
+              "value": "UNKNOWN_COMPATIBILITY_ISSUE",
+              "description": "An unknown compatibility issue exists."
+            }
+          ]
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Interface",
+          "type": "Interface",
+          "description": "Interface"
+        },
+        {
+          "name": "VRF",
+          "type": "str",
+          "description": "VRF"
+        },
+        {
+          "name": "IP",
+          "type": "str",
+          "description": "Ip"
+        },
+        {
+          "name": "Area",
+          "type": "int",
+          "description": "Area"
+        },
+        {
+          "name": "Remote_Interface",
+          "type": "Interface",
+          "description": "Remote Interface"
+        },
+        {
+          "name": "Remote_VRF",
+          "type": "str",
+          "description": "Remote VRF"
+        },
+        {
+          "name": "Remote_IP",
+          "type": "str",
+          "description": "Remote IP"
+        },
+        {
+          "name": "Remote_Area",
+          "type": "int",
+          "description": "Remote Area"
+        },
+        {
+          "name": "Session_Status",
+          "type": "str",
+          "description": "Status of the OSPF session"
+        }
+      ]
+    },
+    "ospfEdges": {
+      "description": "Returns OSPF adjacencies.",
+      "long_description": "Lists all OSPF adjacencies in the network.",
+      "tags": [
+        "topology",
+        "ospf"
+      ],
+      "synonyms": [
+        "OSPF topology",
+        "OSPF adjacencies",
+        "OSPF neighbors"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Include adjacencies whose first node matches this name or regex.",
+          "default": ".*"
+        },
+        "remoteNodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Remote Nodes",
+          "description": "Include edges whose second node matches this name or regex.",
+          "default": ".*"
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Interface",
+          "type": "Interface",
+          "description": "Interface from which the edge originates"
+        },
+        {
+          "name": "Remote_Interface",
+          "type": "Interface",
+          "description": "Interface at which the edge terminates"
+        }
+      ]
+    },
+    "testRoutePolicies": {
+      "description": "Evaluates the processing of a route by a given policy.",
+      "long_description": "Find how the specified route is processed through the specified routing policies.",
+      "tags": [
+        "routing"
+      ],
+      "synonyms": [
+        "test routing policy",
+        "route-map test",
+        "what does this policy do to a route"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Only examine filters on nodes matching this specifier."
+        },
+        "policies": {
+          "type": "routingPolicySpec",
+          "required": false,
+          "display_name": "Policies",
+          "description": "Only consider policies that match this specifier."
+        },
+        "inputRoutes": {
+          "type": "bgpRoutes",
+          "required": true,
+          "display_name": "Input Routes",
+          "description": "The BGP route announcements to test the policy on."
+        },
+        "direction": {
+          "type": "string",
+          "required": true,
+          "display_name": "Direction",
+          "description": "The direction of the route, with respect to the device (IN/OUT).",
+          "allowed_values": [
+            {
+              "value": "in",
+              "description": "The route is inbound to the device"
+            },
+            {
+              "value": "out",
+              "description": "The route is outbound from the device"
+            }
+          ]
+        },
+        "bgpSessionProperties": {
+          "type": "bgpSessionProperties",
+          "required": false,
+          "display_name": "BGP Session Properties",
+          "description": "The BGP session properties to use when testing routes."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Node",
+          "type": "str",
+          "description": "The node that has the policy"
+        },
+        {
+          "name": "Policy_Name",
+          "type": "str",
+          "description": "The name of this policy"
+        },
+        {
+          "name": "Input_Route",
+          "type": "BgpRoute",
+          "description": "The input route"
+        },
+        {
+          "name": "Action",
+          "type": "str",
+          "description": "The action of the policy on the input route"
+        },
+        {
+          "name": "Output_Route",
+          "type": "BgpRoute",
+          "description": "The output route, if any"
+        },
+        {
+          "name": "Difference",
+          "type": "BgpRouteDiffs",
+          "description": "The difference between the input and output routes, if any"
+        },
+        {
+          "name": "Trace",
+          "type": "List of TraceTree",
+          "description": "Route policy trace that shows which clauses/terms matched the input route. If the trace is empty, either nothing matched or tracing is not yet been implemented for this policy type. This is an experimental feature whose content and format is subject to change."
+        }
+      ]
+    },
+    "searchRoutePolicies": {
+      "description": "Finds route announcements for which a route policy has a particular behavior.",
+      "long_description": "This question finds route announcements for which a route policy has a particular behavior. The behaviors can be: that the policy permits the route (`permit`) or that it denies the route (`deny`). Constraints can be imposed on the input route announcements of interest and, in the case of a `permit` action, also on the output route announcements of interest. Route policies are selected using node and policy specifiers, which might match multiple policies. In this case, a (possibly different) answer will be found for each policy. _Note:_ This question currently does not support all of the route policy features that Batfish supports. The question only supports common forms of matching on prefixes, communities, and AS-paths, as well as common forms of setting communities, the local preference, and the metric. The question logs all unsupported features that it encounters as warnings. Due to unsupported features, it is possible for the question to return no answers even for route policies that can in fact exhibit the specified behavior.",
+      "tags": [
+        "routing"
+      ],
+      "synonyms": [
+        "search routing policies",
+        "find route-map behavior",
+        "route policy constraints"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Only examine policies on nodes matching this specifier."
+        },
+        "policies": {
+          "type": "routingPolicySpec",
+          "required": false,
+          "display_name": "Policies",
+          "description": "Only consider policies that match this specifier."
+        },
+        "inputConstraints": {
+          "type": "bgpRouteConstraints",
+          "required": false,
+          "display_name": "Input Constraints",
+          "description": "Constraints on the set of input BGP route announcements to consider."
+        },
+        "action": {
+          "type": "string",
+          "required": false,
+          "display_name": "Action",
+          "description": "The behavior to be evaluated. Specify exactly one of `permit` or `deny`.",
+          "allowed_values": [
+            {
+              "value": "permit",
+              "description": "Find announcements the policy permits."
+            },
+            {
+              "value": "deny",
+              "description": "Find announcements the policy denies."
+            }
+          ]
+        },
+        "outputConstraints": {
+          "type": "bgpRouteConstraints",
+          "required": false,
+          "display_name": "Output Constraints",
+          "description": "Constraints on the set of output BGP route announcements to consider."
+        },
+        "perPath": {
+          "type": "boolean",
+          "required": false,
+          "display_name": "Per-Path",
+          "description": "(deprecated) Run the analysis separately for each execution path of a route map. This option is deprecated in favor of 'pathOption'."
+        },
+        "pathOption": {
+          "type": "string",
+          "required": false,
+          "display_name": "Path Options",
+          "description": "If set to 'per_path' run the analysis separately for each execution path. If set to `non_overlap` run the analysis separately for each execution path but greedily attempt to produce a different prefix for each advertisement to cover each path. This analysis may not produce results for all paths. If set to `single` (or null) the analysis will produce a single advertisement that meets the input and output constraints along one path through the route map.",
+          "allowed_values": [
+            {
+              "value": "per_path",
+              "description": "Analyze each execution path separately."
+            },
+            {
+              "value": "non_overlap",
+              "description": "Analyze each path but greedily produce a different prefix for each advertisement."
+            },
+            {
+              "value": "single",
+              "description": "Produce a single advertisement along one path (default)."
+            }
+          ]
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Node",
+          "type": "str",
+          "description": "The node that has the policy"
+        },
+        {
+          "name": "Policy_Name",
+          "type": "str",
+          "description": "The name of this policy"
+        },
+        {
+          "name": "Input_Route",
+          "type": "BgpRoute",
+          "description": "The input route"
+        },
+        {
+          "name": "Action",
+          "type": "str",
+          "description": "The action of the policy on the input route"
+        },
+        {
+          "name": "Output_Route",
+          "type": "BgpRoute",
+          "description": "The output route, if any"
+        },
+        {
+          "name": "Difference",
+          "type": "BgpRouteDiffs",
+          "description": "The difference between the input and output routes, if any"
+        },
+        {
+          "name": "Trace",
+          "type": "List of TraceTree",
+          "description": "Route policy trace that shows which clauses/terms matched the input route. If the trace is empty, either nothing matched or tracing is not yet been implemented for this policy type. This is an experimental feature whose content and format is subject to change."
+        }
+      ]
+    },
+    "routes": {
+      "description": "Returns routing tables.",
+      "long_description": "Shows routes for specified RIB, VRF, and node(s).",
+      "tags": [
+        "dataplane",
+        "routing"
+      ],
+      "synonyms": [
+        "routing table",
+        "RIB",
+        "show ip route",
+        "all routes"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Return routes on nodes matching this specifier."
+        },
+        "network": {
+          "type": "prefix",
+          "required": false,
+          "display_name": "Network",
+          "description": "Return routes for networks matching this prefix."
+        },
+        "prefixMatchType": {
+          "type": "string",
+          "required": false,
+          "display_name": "Prefix match type",
+          "description": "Use this prefix matching criterion: EXACT, LONGEST_PREFIX_MATCH, LONGER_PREFIXES, SHORTER_PREFIXES.",
+          "default": "EXACT",
+          "allowed_values": [
+            "EXACT",
+            "LONGEST_PREFIX_MATCH",
+            "LONGER_PREFIXES",
+            "SHORTER_PREFIXES"
+          ]
+        },
+        "protocols": {
+          "type": "routingProtocolSpec",
+          "required": false,
+          "display_name": "Protocols",
+          "description": "Return routes for protocols matching this specifier.",
+          "allowed_values": [
+            {
+              "value": "ALL",
+              "description": "All protocols."
+            },
+            {
+              "value": "IGP",
+              "description": "All interior gateway protocols."
+            },
+            {
+              "value": "OSPF",
+              "description": "All OSPF routes."
+            },
+            {
+              "value": "OSPF-INT",
+              "description": "OSPF intra-area and inter-area routes."
+            },
+            {
+              "value": "OSPF-INTRA",
+              "description": "OSPF intra-area routes."
+            },
+            {
+              "value": "OSPF-INTER",
+              "description": "OSPF inter-area routes."
+            },
+            {
+              "value": "OSPF-EXT",
+              "description": "OSPF external routes."
+            },
+            {
+              "value": "OSPF-EXT1",
+              "description": "OSPF external type 1 routes."
+            },
+            {
+              "value": "OSPF-EXT2",
+              "description": "OSPF external type 2 routes."
+            },
+            {
+              "value": "ISIS",
+              "description": "All IS-IS routes."
+            },
+            {
+              "value": "ISIS-L1",
+              "description": "IS-IS level 1 routes."
+            },
+            {
+              "value": "ISIS-L2",
+              "description": "IS-IS level 2 routes."
+            },
+            {
+              "value": "EIGRP",
+              "description": "All EIGRP routes."
+            },
+            {
+              "value": "EIGRP-INT",
+              "description": "EIGRP internal routes."
+            },
+            {
+              "value": "EIGRP-EXT",
+              "description": "EIGRP external routes."
+            },
+            {
+              "value": "RIP",
+              "description": "RIP routes."
+            },
+            {
+              "value": "BGP",
+              "description": "All BGP routes."
+            },
+            {
+              "value": "EBGP",
+              "description": "External BGP routes."
+            },
+            {
+              "value": "IBGP",
+              "description": "Internal BGP routes."
+            },
+            {
+              "value": "AGGREGATE",
+              "description": "Aggregate routes."
+            },
+            {
+              "value": "STATIC",
+              "description": "Static routes."
+            },
+            {
+              "value": "LOCAL",
+              "description": "Local routes."
+            },
+            {
+              "value": "CONNECTED",
+              "description": "Connected routes."
+            }
+          ]
+        },
+        "vrfs": {
+          "type": "vrf",
+          "required": false,
+          "display_name": "VRFs",
+          "description": "Return routes on VRFs matching this name or regex."
+        },
+        "rib": {
+          "type": "string",
+          "required": false,
+          "display_name": "RIB",
+          "description": "Only return routes from a given protocol RIB.",
+          "allowed_values": [
+            "main",
+            "bgp",
+            "evpn"
+          ]
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Node",
+          "type": "str",
+          "description": "Node"
+        },
+        {
+          "name": "VRF",
+          "type": "str",
+          "description": "VRF name"
+        },
+        {
+          "name": "Network",
+          "type": "str",
+          "description": "Network for this route"
+        },
+        {
+          "name": "Next_Hop",
+          "type": "NextHop",
+          "description": "Route's Next Hop"
+        },
+        {
+          "name": "Next_Hop_IP",
+          "type": "str",
+          "description": "Route's Next Hop IP"
+        },
+        {
+          "name": "Next_Hop_Interface",
+          "type": "str",
+          "description": "Route's Next Hop Interface"
+        },
+        {
+          "name": "Protocol",
+          "type": "str",
+          "description": "Route's Protocol"
+        },
+        {
+          "name": "Metric",
+          "type": "int",
+          "description": "Route's Metric"
+        },
+        {
+          "name": "Admin_Distance",
+          "type": "int",
+          "description": "Route's Admin distance"
+        },
+        {
+          "name": "Tag",
+          "type": "int",
+          "description": "Tag for this route"
+        }
+      ]
+    },
+    "bgpRib": {
+      "description": "Returns routes in the BGP RIB.",
+      "long_description": "Shows BGP routes for specified VRF and node(s). This question is not available in Batfish containers on dockerhub prior to March 29, 2021.",
+      "tags": [
+        "dataplane",
+        "routing"
+      ],
+      "synonyms": [
+        "BGP table",
+        "BGP routes",
+        "BGP RIB",
+        "show ip bgp"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Examine routes on nodes matching this specifier."
+        },
+        "network": {
+          "type": "prefix",
+          "required": false,
+          "display_name": "Network",
+          "description": "Examine routes for networks matching this prefix."
+        },
+        "prefixMatchType": {
+          "type": "string",
+          "required": false,
+          "display_name": "Prefix match type",
+          "description": "Use this prefix matching criterion: EXACT, LONGEST_PREFIX_MATCH, LONGER_PREFIXES, SHORTER_PREFIXES.",
+          "default": "EXACT",
+          "allowed_values": [
+            "EXACT",
+            "LONGEST_PREFIX_MATCH",
+            "LONGER_PREFIXES",
+            "SHORTER_PREFIXES"
+          ]
+        },
+        "vrfs": {
+          "type": "vrf",
+          "required": false,
+          "display_name": "VRFs",
+          "description": "Examine routes on VRFs matching this name or regex."
+        },
+        "status": {
+          "type": "bgpRouteStatusSpec",
+          "required": false,
+          "display_name": "Status",
+          "description": "Examine routes whose status matches this specifier.",
+          "allowed_values": [
+            {
+              "value": "BEST",
+              "description": "The unique best route (or equivalent for ECMP) for an NLRI."
+            },
+            {
+              "value": "BACKUP",
+              "description": "A route inferior to all best routes for the same NLRI."
+            }
+          ]
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Node",
+          "type": "str",
+          "description": "Node"
+        },
+        {
+          "name": "VRF",
+          "type": "str",
+          "description": "VRF name"
+        },
+        {
+          "name": "Network",
+          "type": "str",
+          "description": "Network for this route"
+        },
+        {
+          "name": "Status",
+          "type": "List of str",
+          "description": "Route's statuses"
+        },
+        {
+          "name": "Next_Hop",
+          "type": "NextHop",
+          "description": "Route's Next Hop"
+        },
+        {
+          "name": "Next_Hop_IP",
+          "type": "str",
+          "description": "Route's Next Hop IP"
+        },
+        {
+          "name": "Next_Hop_Interface",
+          "type": "str",
+          "description": "Route's Next Hop Interface"
+        },
+        {
+          "name": "Protocol",
+          "type": "str",
+          "description": "Route's Protocol"
+        },
+        {
+          "name": "AS_Path",
+          "type": "str",
+          "description": "Route's AS path"
+        },
+        {
+          "name": "Metric",
+          "type": "int",
+          "description": "Route's Metric"
+        },
+        {
+          "name": "Local_Pref",
+          "type": "int",
+          "description": "Route's Local Preference"
+        },
+        {
+          "name": "Communities",
+          "type": "List of str",
+          "description": "Route's List of communities"
+        },
+        {
+          "name": "Origin_Protocol",
+          "type": "str",
+          "description": "Route's Origin protocol"
+        },
+        {
+          "name": "Origin_Type",
+          "type": "str",
+          "description": "Route's Origin type"
+        },
+        {
+          "name": "Originator_Id",
+          "type": "str",
+          "description": "Route's Originator ID"
+        },
+        {
+          "name": "Received_From_IP",
+          "type": "str",
+          "description": "IP of the neighbor who sent this route"
+        },
+        {
+          "name": "Received_Path_Id",
+          "type": "int",
+          "description": "Route's Received Path ID"
+        },
+        {
+          "name": "Cluster_List",
+          "type": "Set of int",
+          "description": "Route's Cluster List"
+        },
+        {
+          "name": "Tunnel_Encapsulation_Attribute",
+          "type": "str",
+          "description": "Route's BGP Tunnel Encapsulation Attribute"
+        },
+        {
+          "name": "Weight",
+          "type": "int",
+          "description": "Route's BGP Weight"
+        },
+        {
+          "name": "Tag",
+          "type": "int",
+          "description": "Tag for this route"
+        }
+      ]
+    },
+    "evpnRib": {
+      "description": "Returns routes in the EVPN RIB.",
+      "long_description": "Shows EVPN routes for specified VRF and node(s). This question is not available in Batfish containers on dockerhub prior to March 29, 2021.",
+      "tags": [
+        "dataplane",
+        "routing"
+      ],
+      "synonyms": [
+        "EVPN table",
+        "EVPN routes",
+        "EVPN RIB"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Examine routes on nodes matching this specifier."
+        },
+        "network": {
+          "type": "prefix",
+          "required": false,
+          "display_name": "Network",
+          "description": "Examine routes for networks matching this prefix."
+        },
+        "prefixMatchType": {
+          "type": "string",
+          "required": false,
+          "display_name": "Prefix match type",
+          "description": "Use this prefix matching criterion: EXACT, LONGEST_PREFIX_MATCH, LONGER_PREFIXES, SHORTER_PREFIXES.",
+          "default": "EXACT",
+          "allowed_values": [
+            "EXACT",
+            "LONGEST_PREFIX_MATCH",
+            "LONGER_PREFIXES",
+            "SHORTER_PREFIXES"
+          ]
+        },
+        "vrfs": {
+          "type": "vrf",
+          "required": false,
+          "display_name": "VRFs",
+          "description": "Examine routes on VRFs matching this name or regex."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Node",
+          "type": "str",
+          "description": "Node"
+        },
+        {
+          "name": "VRF",
+          "type": "str",
+          "description": "VRF name"
+        },
+        {
+          "name": "Network",
+          "type": "str",
+          "description": "Network for this route"
+        },
+        {
+          "name": "Status",
+          "type": "List of str",
+          "description": "Route's statuses"
+        },
+        {
+          "name": "Route_Distinguisher",
+          "type": "str",
+          "description": "Route distinguisher"
+        },
+        {
+          "name": "Next_Hop",
+          "type": "NextHop",
+          "description": "Route's Next Hop"
+        },
+        {
+          "name": "Next_Hop_IP",
+          "type": "str",
+          "description": "Route's Next Hop IP"
+        },
+        {
+          "name": "Next_Hop_Interface",
+          "type": "str",
+          "description": "Route's Next Hop Interface"
+        },
+        {
+          "name": "Protocol",
+          "type": "str",
+          "description": "Route's Protocol"
+        },
+        {
+          "name": "AS_Path",
+          "type": "str",
+          "description": "Route's AS path"
+        },
+        {
+          "name": "Metric",
+          "type": "int",
+          "description": "Route's Metric"
+        },
+        {
+          "name": "Local_Pref",
+          "type": "int",
+          "description": "Route's Local Preference"
+        },
+        {
+          "name": "Communities",
+          "type": "List of str",
+          "description": "Route's List of communities"
+        },
+        {
+          "name": "Origin_Protocol",
+          "type": "str",
+          "description": "Route's Origin protocol"
+        },
+        {
+          "name": "Origin_Type",
+          "type": "str",
+          "description": "Route's Origin type"
+        },
+        {
+          "name": "Originator_Id",
+          "type": "str",
+          "description": "Route's Originator ID"
+        },
+        {
+          "name": "Received_Path_Id",
+          "type": "int",
+          "description": "Route's Received Path ID"
+        },
+        {
+          "name": "Cluster_List",
+          "type": "Set of int",
+          "description": "Route's Cluster List"
+        },
+        {
+          "name": "Tunnel_Encapsulation_Attribute",
+          "type": "str",
+          "description": "Route's BGP Tunnel Encapsulation Attribute"
+        },
+        {
+          "name": "Weight",
+          "type": "int",
+          "description": "Route's BGP Weight"
+        },
+        {
+          "name": "Tag",
+          "type": "int",
+          "description": "Tag for this route"
+        }
+      ]
+    },
+    "lpmRoutes": {
+      "description": "Returns routes that are longest prefix match for a given IP address.",
+      "long_description": "Return longest prefix match routes for a given IP in the RIBs of specified nodes and VRFs.",
+      "tags": [
+        "dataplane",
+        "routing"
+      ],
+      "synonyms": [
+        "longest prefix match",
+        "which route wins",
+        "route lookup",
+        "LPM"
+      ],
+      "differential": false,
+      "inputs": {
+        "ip": {
+          "type": "ip",
+          "required": true,
+          "display_name": "IP Address",
+          "description": "IP address to run LPM on."
+        },
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Examine routes on nodes matching this specifier.",
+          "default": ".*"
+        },
+        "vrfs": {
+          "type": "vrf",
+          "required": false,
+          "display_name": "VRFs",
+          "description": "Examine routes on VRFs matching this name or regex.",
+          "default": ".*"
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Node",
+          "type": "str",
+          "description": "Node where the route is present"
+        },
+        {
+          "name": "VRF",
+          "type": "str",
+          "description": "VRF where the route is present"
+        },
+        {
+          "name": "Ip",
+          "type": "str",
+          "description": "IP that was being matched on"
+        },
+        {
+          "name": "Network",
+          "type": "str",
+          "description": "The longest-prefix network that matched"
+        },
+        {
+          "name": "Num_Routes",
+          "type": "int",
+          "description": "Number of routes that matched (in case of ECMP)"
+        }
+      ]
+    },
+    "traceroute": {
+      "description": "Traces the path(s) for the specified flow.",
+      "long_description": "Performs a virtual traceroute in the network from a starting node. A destination IP and ingress (source) node must be specified. Other IP headers are given default values if unspecified.\nUnlike a real traceroute, this traceroute is directional. That is, for it to succeed, the reverse connectivity is not needed. This feature can help debug connectivity issues by decoupling the two directions.",
+      "tags": [
+        "dataplane",
+        "traceroute"
+      ],
+      "synonyms": [
+        "trace path",
+        "path trace",
+        "hop-by-hop path",
+        "where does this packet go",
+        "one-way traceroute"
+      ],
+      "differential": false,
+      "inputs": {
+        "startLocation": {
+          "type": "locationSpec",
+          "required": true,
+          "display_name": "Start Location",
+          "description": "Location (node and interface combination) to start tracing from.",
+          "min_length": 1
+        },
+        "headers": {
+          "type": "headerConstraint",
+          "required": true,
+          "display_name": "Headers",
+          "description": "Packet header constraints.",
+          "field_specs": {
+            "applications": {
+              "optional": true,
+              "type": "applicationSpec"
+            },
+            "dscps": {
+              "optional": true
+            },
+            "dstIps": {
+              "optional": false,
+              "type": "ipSpaceSpec"
+            },
+            "dstPorts": {
+              "optional": true
+            },
+            "ecns": {
+              "optional": true
+            },
+            "flowStates": {
+              "optional": true
+            },
+            "fragmentOffsets": {
+              "optional": true
+            },
+            "icmpCodes": {
+              "optional": true
+            },
+            "icmpTypes": {
+              "optional": true
+            },
+            "ipProtocols": {
+              "optional": true,
+              "type": "ipProtocolSpec"
+            },
+            "packetLengths": {
+              "optional": true
+            },
+            "srcIps": {
+              "optional": true,
+              "type": "ipSpaceSpec"
+            },
+            "srcPorts": {
+              "optional": true
+            },
+            "tcpFlags": {
+              "optional": true
+            }
+          }
+        },
+        "maxTraces": {
+          "type": "integer",
+          "required": false,
+          "display_name": "Max Traces",
+          "description": "Limit the number of traces returned."
+        },
+        "ignoreFilters": {
+          "type": "boolean",
+          "required": false,
+          "display_name": "Ignore Filters",
+          "description": "If set, filters/ACLs encountered along the path are ignored."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Flow",
+          "type": "Flow",
+          "description": "The flow"
+        },
+        {
+          "name": "Traces",
+          "type": "Set of Trace",
+          "description": "The traces for this flow"
+        },
+        {
+          "name": "TraceCount",
+          "type": "int",
+          "description": "The total number traces for this flow"
+        }
+      ]
+    },
+    "bidirectionalTraceroute": {
+      "description": "Traces the path(s) for the specified flow, along with path(s) for reverse flows.",
+      "long_description": "This question performs a virtual traceroute in the network from a starting node. A destination IP and ingress (source) node must be specified. Other IP headers are given default values if unspecified.\nIf the trace succeeds, a traceroute is performed in the reverse direction.",
+      "tags": [
+        "dataplane",
+        "traceroute"
+      ],
+      "synonyms": [
+        "two-way traceroute",
+        "round-trip path",
+        "forward and return path"
+      ],
+      "differential": false,
+      "inputs": {
+        "startLocation": {
+          "type": "locationSpec",
+          "required": true,
+          "display_name": "Start Location",
+          "description": "Location (node and interface combination) to start tracing from.",
+          "min_length": 1
+        },
+        "headers": {
+          "type": "headerConstraint",
+          "required": true,
+          "display_name": "Headers",
+          "description": "Packet header constraints.",
+          "field_specs": {
+            "applications": {
+              "optional": true,
+              "type": "applicationSpec"
+            },
+            "dscps": {
+              "optional": true
+            },
+            "dstIps": {
+              "optional": false,
+              "type": "ipSpaceSpec"
+            },
+            "dstPorts": {
+              "optional": true
+            },
+            "ecns": {
+              "optional": true
+            },
+            "flowStates": {
+              "optional": true
+            },
+            "fragmentOffsets": {
+              "optional": true
+            },
+            "icmpCodes": {
+              "optional": true
+            },
+            "icmpTypes": {
+              "optional": true
+            },
+            "ipProtocols": {
+              "optional": true,
+              "type": "ipProtocolSpec"
+            },
+            "packetLengths": {
+              "optional": true
+            },
+            "srcIps": {
+              "optional": true,
+              "type": "ipSpaceSpec"
+            },
+            "srcPorts": {
+              "optional": true
+            },
+            "tcpFlags": {
+              "optional": true
+            }
+          }
+        },
+        "maxTraces": {
+          "type": "integer",
+          "required": false,
+          "display_name": "Max Traces",
+          "description": "Limit the number of traces returned."
+        },
+        "ignoreFilters": {
+          "type": "boolean",
+          "required": false,
+          "display_name": "Ignore Filters",
+          "description": "If set, filters/ACLs encountered along the path are ignored."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Forward_Flow",
+          "type": "Flow",
+          "description": "The forward flow."
+        },
+        {
+          "name": "Forward_Traces",
+          "type": "List of Trace",
+          "description": "The forward traces."
+        },
+        {
+          "name": "New_Sessions",
+          "type": "List of str",
+          "description": "Sessions initialized by the forward trace."
+        },
+        {
+          "name": "Reverse_Flow",
+          "type": "Flow",
+          "description": "The reverse flow."
+        },
+        {
+          "name": "Reverse_Traces",
+          "type": "List of Trace",
+          "description": "The reverse traces."
+        }
+      ]
+    },
+    "reachability": {
+      "description": "Finds flows that match the specified path and header space conditions.",
+      "long_description": "Searches across all flows that match the specified conditions and returns examples of such flows. This question can be used to ensure that certain services are globally accessible and parts of the network are perfectly isolated from each other.",
+      "tags": [
+        "dataplane",
+        "reachability"
+      ],
+      "synonyms": [
+        "can A reach B",
+        "connectivity test",
+        "successful flows",
+        "flow search",
+        "which flows succeed"
+      ],
+      "differential": false,
+      "inputs": {
+        "pathConstraints": {
+          "type": "pathConstraint",
+          "required": false,
+          "display_name": "Path Constraints",
+          "description": "Constraint the path a flow can take (start/end/transit locations).",
+          "field_specs": {
+            "startLocation": {
+              "optional": true,
+              "type": "locationSpec"
+            },
+            "endLocation": {
+              "optional": true,
+              "type": "nodeSpec"
+            },
+            "transitLocations": {
+              "optional": true,
+              "type": "nodeSpec"
+            },
+            "forbiddenLocations": {
+              "optional": true,
+              "type": "nodeSpec"
+            }
+          }
+        },
+        "headers": {
+          "type": "headerConstraint",
+          "required": false,
+          "display_name": "Headers",
+          "description": "Packet header constraints.",
+          "field_specs": {
+            "applications": {
+              "optional": true,
+              "type": "applicationSpec"
+            },
+            "dscps": {
+              "optional": true
+            },
+            "dstIps": {
+              "optional": true,
+              "type": "ipSpaceSpec"
+            },
+            "dstPorts": {
+              "optional": true
+            },
+            "ecns": {
+              "optional": true
+            },
+            "flowStates": {
+              "optional": true
+            },
+            "fragmentOffsets": {
+              "optional": true
+            },
+            "icmpCodes": {
+              "optional": true
+            },
+            "icmpTypes": {
+              "optional": true
+            },
+            "ipProtocols": {
+              "optional": true,
+              "type": "ipProtocolSpec"
+            },
+            "packetLengths": {
+              "optional": true
+            },
+            "srcIps": {
+              "optional": true,
+              "type": "ipSpaceSpec"
+            },
+            "srcPorts": {
+              "optional": true
+            },
+            "tcpFlags": {
+              "optional": true
+            }
+          }
+        },
+        "actions": {
+          "type": "dispositionSpec",
+          "required": false,
+          "display_name": "Actions",
+          "description": "Only return flows for which the disposition is from this set.",
+          "default": "success",
+          "allowed_values": [
+            {
+              "value": "success",
+              "description": "Flows that were successfully delivered."
+            },
+            {
+              "value": "failure",
+              "description": "Flows that were dropped somewhere in the network."
+            },
+            {
+              "value": "accepted",
+              "description": "Flows accepted by a device in the snapshot."
+            },
+            {
+              "value": "delivered_to_subnet",
+              "description": "Flows delivered to a host subnet."
+            },
+            {
+              "value": "exits_network",
+              "description": "Flows forwarded to a device outside the snapshot."
+            },
+            {
+              "value": "denied_in",
+              "description": "Flows denied by an input filter."
+            },
+            {
+              "value": "denied_out",
+              "description": "Flows denied by an output filter."
+            },
+            {
+              "value": "no_route",
+              "description": "Flows dropped because no route exists."
+            },
+            {
+              "value": "null_routed",
+              "description": "Flows dropped by a null route."
+            },
+            {
+              "value": "neighbor_unreachable",
+              "description": "Flows whose next hop could not be reached."
+            },
+            {
+              "value": "loop",
+              "description": "Flows that encountered a forwarding loop."
+            },
+            {
+              "value": "insufficient_info",
+              "description": "Batfish does not have enough information to decide."
+            }
+          ]
+        },
+        "maxTraces": {
+          "type": "integer",
+          "required": false,
+          "display_name": "Max Traces",
+          "description": "Limit the number of traces returned."
+        },
+        "invertSearch": {
+          "type": "boolean",
+          "required": false,
+          "display_name": "Invert Search",
+          "description": "Search for packet headers outside the specified headerspace, rather than inside the space."
+        },
+        "ignoreFilters": {
+          "type": "boolean",
+          "required": false,
+          "display_name": "Ignore Filters",
+          "description": "Do not apply filters/ACLs during analysis."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Flow",
+          "type": "Flow",
+          "description": "The flow"
+        },
+        {
+          "name": "Traces",
+          "type": "Set of Trace",
+          "description": "The traces for this flow"
+        },
+        {
+          "name": "TraceCount",
+          "type": "int",
+          "description": "The total number traces for this flow"
+        }
+      ]
+    },
+    "bidirectionalReachability": {
+      "description": "Searches for successfully delivered flows that can successfully receive a response.",
+      "long_description": "Performs two reachability analyses, first originating from specified sources, then returning back to those sources. After the first (forward) pass, sets up sessions in the network and creates returning flows for each successfully delivered forward flow. The second pass searches for return flows that can be successfully delivered in the presence of the setup sessions.",
+      "tags": [
+        "dataplane",
+        "reachability"
+      ],
+      "synonyms": [
+        "two-way reachability",
+        "round-trip connectivity",
+        "can A and B reach each other"
+      ],
+      "differential": false,
+      "inputs": {
+        "pathConstraints": {
+          "type": "pathConstraint",
+          "required": false,
+          "display_name": "Path Constraints",
+          "description": "Constraint the path a flow can take (start/end/transit locations).",
+          "field_specs": {
+            "startLocation": {
+              "optional": true,
+              "type": "locationSpec"
+            },
+            "endLocation": {
+              "optional": true,
+              "type": "nodeSpec"
+            },
+            "transitLocations": {
+              "optional": true,
+              "type": "nodeSpec"
+            },
+            "forbiddenLocations": {
+              "optional": true,
+              "type": "nodeSpec"
+            }
+          }
+        },
+        "headers": {
+          "type": "headerConstraint",
+          "required": true,
+          "display_name": "Headers",
+          "description": "Packet header constraints.",
+          "field_specs": {
+            "applications": {
+              "optional": true,
+              "type": "applicationSpec"
+            },
+            "dscps": {
+              "optional": true
+            },
+            "dstIps": {
+              "optional": true,
+              "type": "ipSpaceSpec"
+            },
+            "dstPorts": {
+              "optional": true
+            },
+            "ecns": {
+              "optional": true
+            },
+            "flowStates": {
+              "optional": true
+            },
+            "fragmentOffsets": {
+              "optional": true
+            },
+            "icmpCodes": {
+              "optional": true
+            },
+            "icmpTypes": {
+              "optional": true
+            },
+            "ipProtocols": {
+              "optional": true,
+              "type": "ipProtocolSpec"
+            },
+            "packetLengths": {
+              "optional": true
+            },
+            "srcIps": {
+              "optional": true,
+              "type": "ipSpaceSpec"
+            },
+            "srcPorts": {
+              "optional": true
+            },
+            "tcpFlags": {
+              "optional": true
+            }
+          }
+        },
+        "returnFlowType": {
+          "type": "string",
+          "required": false,
+          "display_name": "Return Flow Type",
+          "description": "Specifies the type of return flows to search.",
+          "default": "SUCCESS",
+          "allowed_values": [
+            {
+              "value": "SUCCESS",
+              "description": "Flows that are successful"
+            },
+            {
+              "value": "FAILURE",
+              "description": "Flows that fail"
+            },
+            {
+              "value": "MULTIPATH_INCONSISTENT",
+              "description": "Flows that succeed or fail depending on the path"
+            }
+          ]
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Forward_Flow",
+          "type": "Flow",
+          "description": "The forward flow."
+        },
+        {
+          "name": "Forward_Traces",
+          "type": "List of Trace",
+          "description": "The forward traces."
+        },
+        {
+          "name": "New_Sessions",
+          "type": "List of str",
+          "description": "Sessions initialized by the forward trace."
+        },
+        {
+          "name": "Reverse_Flow",
+          "type": "Flow",
+          "description": "The reverse flow."
+        },
+        {
+          "name": "Reverse_Traces",
+          "type": "List of Trace",
+          "description": "The reverse traces."
+        }
+      ]
+    },
+    "detectLoops": {
+      "description": "Detects forwarding loops.",
+      "long_description": "Searches across all possible flows in the network and returns example flows that will experience forwarding loops.",
+      "tags": [
+        "dataplane",
+        "reachability"
+      ],
+      "synonyms": [
+        "forwarding loop",
+        "routing loop",
+        "traffic going in circles",
+        "loop detection"
+      ],
+      "differential": false,
+      "inputs": {
+        "maxTraces": {
+          "type": "integer",
+          "required": false,
+          "display_name": "Max Traces",
+          "description": "Limit the number of traces returned."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Flow",
+          "type": "Flow",
+          "description": "The flow"
+        },
+        {
+          "name": "Traces",
+          "type": "Set of Trace",
+          "description": "The traces for this flow"
+        },
+        {
+          "name": "TraceCount",
+          "type": "int",
+          "description": "The total number traces for this flow"
+        }
+      ]
+    },
+    "subnetMultipathConsistency": {
+      "description": "Validates multipath consistency between all pairs of subnets.",
+      "long_description": "Searches across all flows between subnets that are treated differently (i.e., dropped versus forwarded) by different paths in the network and returns example flows.",
+      "tags": [
+        "dataplane",
+        "reachability"
+      ],
+      "synonyms": [
+        "host-subnet ECMP",
+        "subnet multipath",
+        "inconsistent forwarding to hosts"
+      ],
+      "differential": false,
+      "inputs": {
+        "maxTraces": {
+          "type": "integer",
+          "required": false,
+          "display_name": "Max Traces",
+          "description": "Limit the number of traces returned."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Flow",
+          "type": "Flow",
+          "description": "The flow"
+        },
+        {
+          "name": "Traces",
+          "type": "Set of Trace",
+          "description": "The traces for this flow"
+        },
+        {
+          "name": "TraceCount",
+          "type": "int",
+          "description": "The total number traces for this flow"
+        }
+      ]
+    },
+    "loopbackMultipathConsistency": {
+      "description": "Validates multipath consistency between all pairs of loopbacks.",
+      "long_description": "Finds flows between loopbacks that are treated differently (i.e., dropped versus forwarded) by different paths in the presence of multipath routing.",
+      "tags": [
+        "dataplane",
+        "reachability"
+      ],
+      "synonyms": [
+        "loopback ECMP",
+        "router loopback multipath",
+        "inconsistent forwarding to loopbacks"
+      ],
+      "differential": false,
+      "inputs": {
+        "maxTraces": {
+          "type": "integer",
+          "required": false,
+          "display_name": "Max Traces",
+          "description": "Limit the number of traces returned."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Flow",
+          "type": "Flow",
+          "description": "The flow"
+        },
+        {
+          "name": "Traces",
+          "type": "Set of Trace",
+          "description": "The traces for this flow"
+        },
+        {
+          "name": "TraceCount",
+          "type": "int",
+          "description": "The total number traces for this flow"
+        }
+      ]
+    },
+    "filterLineReachability": {
+      "description": "Returns unreachable lines in filters (ACLs and firewall rules).",
+      "long_description": "Finds all lines in the specified filters that will not match any packet, either because of being shadowed by prior lines or because of its match condition being empty.",
+      "tags": [
+        "acl"
+      ],
+      "synonyms": [
+        "shadowed ACL lines",
+        "unreachable firewall rules",
+        "redundant ACL lines",
+        "dead filter lines"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Examine filters on nodes matching this specifier."
+        },
+        "filters": {
+          "type": "filterSpec",
+          "required": false,
+          "display_name": "Filters",
+          "description": "Specifier for filters to test."
+        },
+        "ignoreComposites": {
+          "type": "boolean",
+          "required": false,
+          "display_name": "Ignore composite filters",
+          "description": "Whether to ignore filters that are composed of multiple filters defined in the configs.",
+          "default": false
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Sources",
+          "type": "List of str",
+          "description": "Filter sources"
+        },
+        {
+          "name": "Unreachable_Line",
+          "type": "str",
+          "description": "Filter line that cannot be matched (i.e., unreachable)"
+        },
+        {
+          "name": "Unreachable_Line_Action",
+          "type": "str",
+          "description": "Action performed by the unreachable line (e.g., PERMIT or DENY)"
+        },
+        {
+          "name": "Blocking_Lines",
+          "type": "List of str",
+          "description": "Lines that, when combined, cover the unreachable line"
+        },
+        {
+          "name": "Different_Action",
+          "type": "bool",
+          "description": "Whether unreachable line has an action different from the blocking line(s)"
+        },
+        {
+          "name": "Reason",
+          "type": "str",
+          "description": "The reason a line is unreachable"
+        },
+        {
+          "name": "Additional_Info",
+          "type": "str",
+          "description": "Additional information"
+        }
+      ]
+    },
+    "searchFilters": {
+      "description": "Finds flows for which a filter takes a particular behavior.",
+      "long_description": "This question searches for flows for which a filter (access control list) has a particular behavior. The behaviors can be: that the filter permits the flow (`permit`), that it denies the flow (`deny`), or that the flow is matched by a particular line (`matchLine <lineNumber>`). Filters are selected using node and filter specifiers, which might match multiple filters. In this case, a (possibly different) flow will be found for each filter.",
+      "tags": [
+        "acl"
+      ],
+      "synonyms": [
+        "find ACL match",
+        "which flows hit a rule",
+        "search filters",
+        "filter flow search"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Only evaluate filters present on nodes matching this specifier."
+        },
+        "filters": {
+          "type": "filterSpec",
+          "required": false,
+          "display_name": "Filters",
+          "description": "Only evaluate filters that match this specifier."
+        },
+        "headers": {
+          "type": "headerConstraint",
+          "required": false,
+          "display_name": "Headers",
+          "description": "Packet header constraints on the flows being searched.",
+          "field_specs": {
+            "applications": {
+              "optional": true,
+              "type": "applicationSpec"
+            },
+            "dscps": {
+              "optional": true
+            },
+            "dstIps": {
+              "optional": true,
+              "type": "ipSpaceSpec"
+            },
+            "dstPorts": {
+              "optional": true
+            },
+            "ecns": {
+              "optional": true
+            },
+            "flowStates": {
+              "optional": true
+            },
+            "fragmentOffsets": {
+              "optional": true
+            },
+            "icmpCodes": {
+              "optional": true
+            },
+            "icmpTypes": {
+              "optional": true
+            },
+            "ipProtocols": {
+              "optional": true,
+              "type": "ipProtocolSpec"
+            },
+            "packetLengths": {
+              "optional": true
+            },
+            "srcIps": {
+              "optional": true,
+              "type": "ipSpaceSpec"
+            },
+            "srcPorts": {
+              "optional": true
+            },
+            "tcpFlags": {
+              "optional": true
+            }
+          }
+        },
+        "action": {
+          "type": "string",
+          "required": false,
+          "display_name": "Action",
+          "description": "The behavior that you want evaluated. Specify exactly one of `permit`, `deny`, or `matchLine <line number>`.",
+          "allowed_values": [
+            {
+              "value": "permit",
+              "description": "Return lines that permit the flow."
+            },
+            {
+              "value": "deny",
+              "description": "Return lines that deny the flow."
+            },
+            {
+              "value": "matchLine <line number>",
+              "description": "Match a specific filter line by number."
+            }
+          ]
+        },
+        "startLocation": {
+          "type": "locationSpec",
+          "required": false,
+          "display_name": "Start Location",
+          "description": "Only consider specified locations as possible sources."
+        },
+        "invertSearch": {
+          "type": "boolean",
+          "required": false,
+          "display_name": "Invert Search",
+          "description": "Search for packet headers outside the specified headerspace, rather than inside the space."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Node",
+          "type": "str",
+          "description": "Node"
+        },
+        {
+          "name": "Filter_Name",
+          "type": "str",
+          "description": "Filter name"
+        },
+        {
+          "name": "Flow",
+          "type": "Flow",
+          "description": "Evaluated flow"
+        },
+        {
+          "name": "Action",
+          "type": "str",
+          "description": "Outcome"
+        },
+        {
+          "name": "Line_Content",
+          "type": "str",
+          "description": "Line content"
+        },
+        {
+          "name": "Trace",
+          "type": "List of TraceTree",
+          "description": "ACL trace"
+        }
+      ]
+    },
+    "testFilters": {
+      "description": "Returns how a flow is processed by a filter (ACLs, firewall rules).",
+      "long_description": "Shows how the specified flow is processed through the specified filters, returning its permit/deny status as well as the line(s) it matched.",
+      "tags": [
+        "acl"
+      ],
+      "synonyms": [
+        "is traffic allowed",
+        "ACL permit/deny test",
+        "does a filter permit this flow",
+        "test ACL"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Only examine filters on nodes matching this specifier."
+        },
+        "filters": {
+          "type": "filterSpec",
+          "required": false,
+          "display_name": "Filters",
+          "description": "Only consider filters that match this specifier."
+        },
+        "headers": {
+          "type": "headerConstraint",
+          "required": true,
+          "display_name": "Headers",
+          "description": "Packet header constraints.",
+          "field_specs": {
+            "applications": {
+              "optional": true,
+              "type": "applicationSpec"
+            },
+            "dscps": {
+              "optional": true
+            },
+            "dstIps": {
+              "optional": false,
+              "type": "ipSpaceSpec"
+            },
+            "dstPorts": {
+              "optional": true
+            },
+            "ecns": {
+              "optional": true
+            },
+            "flowStates": {
+              "optional": true
+            },
+            "fragmentOffsets": {
+              "optional": true
+            },
+            "icmpCodes": {
+              "optional": true
+            },
+            "icmpTypes": {
+              "optional": true
+            },
+            "ipProtocols": {
+              "optional": true,
+              "type": "ipProtocolSpec"
+            },
+            "packetLengths": {
+              "optional": true
+            },
+            "srcIps": {
+              "optional": true,
+              "type": "ipSpaceSpec"
+            },
+            "srcPorts": {
+              "optional": true
+            },
+            "tcpFlags": {
+              "optional": true
+            }
+          }
+        },
+        "startLocation": {
+          "type": "locationSpec",
+          "required": false,
+          "display_name": "Start Location",
+          "description": "Location to start tracing from.",
+          "min_length": 1
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Node",
+          "type": "str",
+          "description": "Node"
+        },
+        {
+          "name": "Filter_Name",
+          "type": "str",
+          "description": "Filter name"
+        },
+        {
+          "name": "Flow",
+          "type": "Flow",
+          "description": "Evaluated flow"
+        },
+        {
+          "name": "Action",
+          "type": "str",
+          "description": "Outcome"
+        },
+        {
+          "name": "Line_Content",
+          "type": "str",
+          "description": "Line content"
+        },
+        {
+          "name": "Trace",
+          "type": "List of TraceTree",
+          "description": "ACL trace"
+        }
+      ]
+    },
+    "findMatchingFilterLines": {
+      "description": "Returns lines in filters (ACLs and firewall rules) that match any packet within the specified header constraints.",
+      "long_description": "Finds all lines in the specified filters that match any packet within the specified header constraints.",
+      "tags": [
+        "acl"
+      ],
+      "synonyms": [
+        "which ACL line matches",
+        "matching filter lines",
+        "trace flow to rule"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Examine filters on nodes matching this specifier."
+        },
+        "filters": {
+          "type": "filterSpec",
+          "required": false,
+          "display_name": "Filters",
+          "description": "Specifier for filters to check."
+        },
+        "headers": {
+          "type": "headerConstraint",
+          "required": false,
+          "display_name": "Headers",
+          "description": "Packet header constraints for which to find matching filter lines.",
+          "field_specs": {
+            "applications": {
+              "optional": true,
+              "type": "applicationSpec"
+            },
+            "dscps": {
+              "optional": true
+            },
+            "dstIps": {
+              "optional": true,
+              "type": "ipSpaceSpec"
+            },
+            "dstPorts": {
+              "optional": true
+            },
+            "ecns": {
+              "optional": true
+            },
+            "flowStates": {
+              "optional": true
+            },
+            "fragmentOffsets": {
+              "optional": true
+            },
+            "icmpCodes": {
+              "optional": true
+            },
+            "icmpTypes": {
+              "optional": true
+            },
+            "ipProtocols": {
+              "optional": true,
+              "type": "ipProtocolSpec"
+            },
+            "packetLengths": {
+              "optional": true
+            },
+            "srcIps": {
+              "optional": true,
+              "type": "ipSpaceSpec"
+            },
+            "srcPorts": {
+              "optional": true
+            },
+            "tcpFlags": {
+              "optional": true
+            }
+          }
+        },
+        "action": {
+          "type": "string",
+          "required": false,
+          "display_name": "Action",
+          "description": "Show filter lines with this action. By default returns lines with either action.",
+          "allowed_values": [
+            {
+              "value": "permit",
+              "description": "Return only lines that permit packets"
+            },
+            {
+              "value": "deny",
+              "description": "Return only lines that deny packets"
+            }
+          ]
+        },
+        "ignoreComposites": {
+          "type": "boolean",
+          "required": false,
+          "display_name": "Ignore composite filters",
+          "description": "Whether to ignore filters that are composed of multiple filters defined in the configs.",
+          "default": false
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Node",
+          "type": "str",
+          "description": "Node"
+        },
+        {
+          "name": "Filter",
+          "type": "str",
+          "description": "Filter name"
+        },
+        {
+          "name": "Line",
+          "type": "str",
+          "description": "Line text"
+        },
+        {
+          "name": "Line_Index",
+          "type": "int",
+          "description": "Index of line"
+        },
+        {
+          "name": "Action",
+          "type": "str",
+          "description": "Action performed by the line (e.g., PERMIT or DENY)"
+        }
+      ]
+    },
+    "snmpCommunityClients": {
+      "description": "Checks if an SNMP community permits specified client IPs.",
+      "long_description": "This question checks if the specified SNMP community permits the specified client IPs on specified devices. It reports if any device does not have the community or the set of permitted client IPs by the community does not match those specified in the question. If the community exists and permits exactly the specified client IPs, the device is not included in the output. The question currently only supports Arista, Cisco-NXOS, and Juniper devices. For all others, it will report an UNSUPPORTED_DEVICE status in the output.",
+      "tags": [
+        "acl"
+      ],
+      "synonyms": [
+        "SNMP community",
+        "SNMP client access",
+        "SNMP allowed clients"
+      ],
+      "differential": false,
+      "inputs": {
+        "community": {
+          "type": "string",
+          "required": true,
+          "display_name": "Community",
+          "description": "The SNMP community to consider."
+        },
+        "clients": {
+          "type": "ipSpaceSpec",
+          "required": false,
+          "display_name": "Clients",
+          "description": "Client IPs expected to be permitted."
+        },
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Only evaluate nodes matching this specifier."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Node",
+          "type": "str",
+          "description": "Hostname."
+        },
+        {
+          "name": "Community",
+          "type": "str",
+          "description": "The community name."
+        },
+        {
+          "name": "Reason",
+          "type": "str",
+          "description": "Result of the test."
+        }
+      ]
+    },
+    "ipsecSessionStatus": {
+      "description": "Returns the status of configured IPSec sessions.",
+      "long_description": "Shows configuration settings and status for each configured IPSec tunnel in the network. The status is IPSEC_SESSION_ESTABLISHED for tunnels that are expected to be established; it is IKE_PHASE1_FAILED if IKE parameters negotiation failed; it is IKE_PHASE1_KEY_MISMATCH if IKE negotiation was successful but IKE keys do not match; it is IPSEC_PHASE2_FAILED if negotiation of IPsec parameters failed; and it is MISSING_END_POINT if the remote endpoint for a configured IPsec tunnel could not be found in the network.",
+      "tags": [
+        "ipsec",
+        "status"
+      ],
+      "synonyms": [
+        "IPSec tunnel status",
+        "VPN status",
+        "IPSec session up/down"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Include sessions whose first node matches this specifier."
+        },
+        "remoteNodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Remote Nodes",
+          "description": "Include sessions whose second node matches this specifier."
+        },
+        "status": {
+          "type": "ipsecSessionStatusSpec",
+          "required": false,
+          "display_name": "Status",
+          "description": "Only include IPSec sessions for which status matches this specifier.",
+          "allowed_values": [
+            {
+              "value": "IPSEC_SESSION_ESTABLISHED",
+              "description": "The IPSec session is established."
+            },
+            {
+              "value": "IKE_PHASE1_FAILED",
+              "description": "IKE phase 1 failed."
+            },
+            {
+              "value": "IKE_PHASE1_KEY_MISMATCH",
+              "description": "IKE phase 1 key mismatch."
+            },
+            {
+              "value": "IPSEC_PHASE2_FAILED",
+              "description": "IPSec phase 2 failed."
+            },
+            {
+              "value": "MISSING_END_POINT",
+              "description": "An IPSec endpoint is missing."
+            }
+          ]
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Node",
+          "type": "str",
+          "description": "IPSec initiator"
+        },
+        {
+          "name": "Node_Interface",
+          "type": "Interface",
+          "description": "Initiator Interface"
+        },
+        {
+          "name": "Node_IP",
+          "type": "str",
+          "description": "Initiator IP"
+        },
+        {
+          "name": "Remote_Node",
+          "type": "str",
+          "description": "IPSec responder"
+        },
+        {
+          "name": "Remote_Node_Interface",
+          "type": "Interface",
+          "description": "Responder Interface"
+        },
+        {
+          "name": "Remote_Node_IP",
+          "type": "str",
+          "description": "Responder IP"
+        },
+        {
+          "name": "Tunnel_Interfaces",
+          "type": "str",
+          "description": "Tunnel interfaces pair used in peering session"
+        },
+        {
+          "name": "Status",
+          "type": "str",
+          "description": "IPSec session status"
+        }
+      ]
+    },
+    "ipsecEdges": {
+      "description": "Returns IPSec tunnels.",
+      "long_description": "Lists all IPSec tunnels in the network.",
+      "tags": [
+        "topology",
+        "ipsec"
+      ],
+      "synonyms": [
+        "IPSec topology",
+        "VPN tunnels",
+        "IPSec peers"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Include tunnels whose first node matches this name or regex.",
+          "default": ".*"
+        },
+        "remoteNodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Remote Nodes",
+          "description": "Include tunnels whose second node matches this name or regex.",
+          "default": ".*"
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Source_Interface",
+          "type": "Interface",
+          "description": "Source interface used in the IPsec session"
+        },
+        {
+          "name": "Tunnel_Interface",
+          "type": "Interface",
+          "description": "Tunnel interface (if any) used in the IPsec session"
+        },
+        {
+          "name": "Remote_Source_Interface",
+          "type": "Interface",
+          "description": "Remote source interface used in the IPsec session"
+        },
+        {
+          "name": "Remote_Tunnel_Interface",
+          "type": "Interface",
+          "description": "Remote tunnel interface (if any) used in the IPsec session"
+        }
+      ]
+    },
+    "vxlanVniProperties": {
+      "description": "Returns configuration settings of VXLANs.",
+      "long_description": "Lists VNI-level network segment settings configured for VXLANs.",
+      "tags": [
+        "configuration",
+        "vxlan"
+      ],
+      "synonyms": [
+        "VXLAN VNI",
+        "VXLAN properties",
+        "VNI mapping"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Include nodes matching this specifier."
+        },
+        "properties": {
+          "type": "vxlanVniPropertySpec",
+          "required": false,
+          "display_name": "Properties",
+          "description": "Include properties matching this specifier."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Node",
+          "type": "str",
+          "description": "Node"
+        },
+        {
+          "name": "VRF",
+          "type": "str",
+          "description": "VRF"
+        },
+        {
+          "name": "VNI",
+          "type": "int",
+          "description": "VXLAN Segment ID"
+        },
+        {
+          "name": "Local_VTEP_IP",
+          "type": "str",
+          "description": "IPv4 address of the local VTEP"
+        },
+        {
+          "name": "Multicast_Group",
+          "type": "str",
+          "description": "IPv4 address of the multicast group"
+        },
+        {
+          "name": "VLAN",
+          "type": "int",
+          "description": "VLAN number for the VNI"
+        },
+        {
+          "name": "VTEP_Flood_List",
+          "type": "List of str",
+          "description": "All IPv4 addresses in the VTEP flood list"
+        },
+        {
+          "name": "VXLAN_Port",
+          "type": "int",
+          "description": "Destination port number for the VXLAN tunnel"
+        }
+      ]
+    },
+    "vxlanEdges": {
+      "description": "Returns VXLAN edges.",
+      "long_description": "Lists all VXLAN edges in the network.",
+      "tags": [
+        "topology",
+        "vxlan"
+      ],
+      "synonyms": [
+        "VXLAN topology",
+        "VXLAN tunnels",
+        "VTEP peers"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Include edges whose first node matches this name or regex.",
+          "default": ".*"
+        },
+        "remoteNodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Remote Nodes",
+          "description": "Include edges whose second node matches this name or regex.",
+          "default": ".*"
+        }
+      },
+      "output_columns": [
+        {
+          "name": "VNI",
+          "type": "int",
+          "description": "VNI of the VXLAN tunnel edge"
+        },
+        {
+          "name": "Node",
+          "type": "str",
+          "description": "Node from which the edge originates"
+        },
+        {
+          "name": "Remote_Node",
+          "type": "str",
+          "description": "Node at which the edge terminates"
+        },
+        {
+          "name": "VTEP_Address",
+          "type": "str",
+          "description": "VTEP IP of node from which the edge originates"
+        },
+        {
+          "name": "Remote_VTEP_Address",
+          "type": "str",
+          "description": "VTEP IP of node at which the edge terminates"
+        },
+        {
+          "name": "VLAN",
+          "type": "int",
+          "description": "VLAN associated with VNI on node from which the edge originates"
+        },
+        {
+          "name": "Remote_VLAN",
+          "type": "int",
+          "description": "VLAN associated with VNI on node at which the edge terminates"
+        },
+        {
+          "name": "UDP_Port",
+          "type": "int",
+          "description": "UDP port of the VXLAN tunnel transport"
+        },
+        {
+          "name": "Multicast_Group",
+          "type": "str",
+          "description": "Multicast group of the VXLAN tunnel transport"
+        }
+      ]
+    },
+    "evpnL3VniProperties": {
+      "description": "Returns configuration settings of VXLANs.",
+      "long_description": "Lists VNI-level network segment settings configured for VXLANs.",
+      "tags": [
+        "configuration",
+        "evpn",
+        "vxlan"
+      ],
+      "synonyms": [
+        "EVPN L3 VNI",
+        "EVPN VNI properties"
+      ],
+      "differential": false,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Include nodes matching this specifier."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Node",
+          "type": "str",
+          "description": "Node"
+        },
+        {
+          "name": "VRF",
+          "type": "str",
+          "description": "VRF"
+        },
+        {
+          "name": "VNI",
+          "type": "int",
+          "description": "VXLAN Segment ID"
+        },
+        {
+          "name": "Route_Distinguisher",
+          "type": "str",
+          "description": "Route distinguisher"
+        },
+        {
+          "name": "Import_Route_Target",
+          "type": "str",
+          "description": "Import route target"
+        },
+        {
+          "name": "Export_Route_Target",
+          "type": "str",
+          "description": "Export route target"
+        }
+      ]
+    },
+    "resolveLocationSpecifier": {
+      "description": "Returns the set of locations corresponding to a locationSpec value.",
+      "long_description": "Helper question that shows how specified locationSpec values resolve to the locations in the network.",
+      "tags": [
+        "specifiers"
+      ],
+      "synonyms": [
+        "resolve location specifier",
+        "why does this location match"
+      ],
+      "differential": false,
+      "inputs": {
+        "grammarVersion": {
+          "type": "string",
+          "required": false,
+          "display_name": "Grammar version",
+          "description": "Version of grammar to use for resolution."
+        },
+        "locations": {
+          "type": "locationSpec",
+          "required": true,
+          "display_name": "Locations",
+          "description": "Input to the LocationSpecifier."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Location",
+          "type": "str",
+          "description": "Location"
+        }
+      ]
+    },
+    "resolveFilterSpecifier": {
+      "description": "Returns the set of filters corresponding to a filterSpec value.",
+      "long_description": "Helper question that shows how specified filterSpec values resolve to the filters in the network.",
+      "tags": [
+        "specifiers"
+      ],
+      "synonyms": [
+        "resolve filter specifier",
+        "which filters match this pattern"
+      ],
+      "differential": false,
+      "inputs": {
+        "filters": {
+          "type": "filterSpec",
+          "required": true,
+          "display_name": "Filters",
+          "description": "Input to the FilterSpecifier."
+        },
+        "grammarVersion": {
+          "type": "string",
+          "required": false,
+          "display_name": "Grammar version",
+          "description": "Version of grammar to use for resolution."
+        },
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Input to the NodeSpecifier that specifies the set of nodes that should be considered.",
+          "default": "/.*/"
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Node",
+          "type": "str",
+          "description": "Node"
+        },
+        {
+          "name": "Filter_Name",
+          "type": "str",
+          "description": "Filter name"
+        }
+      ]
+    },
+    "resolveNodeSpecifier": {
+      "description": "Returns the set of nodes corresponding to a nodeSpec value.",
+      "long_description": "Helper question that shows how specified nodeSpec values resolve to the nodes in the network.",
+      "tags": [
+        "specifiers"
+      ],
+      "synonyms": [
+        "resolve node specifier",
+        "which nodes match this regex"
+      ],
+      "differential": false,
+      "inputs": {
+        "grammarVersion": {
+          "type": "string",
+          "required": false,
+          "display_name": "Grammar version",
+          "description": "Version of grammar to use for resolution."
+        },
+        "nodes": {
+          "type": "nodeSpec",
+          "required": true,
+          "display_name": "Nodes",
+          "description": "Input to the NodeSpecifier."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Node",
+          "type": "str",
+          "description": "Node"
+        }
+      ]
+    },
+    "resolveInterfaceSpecifier": {
+      "description": "Returns the set of interfaces corresponding to an interfaceSpec value.",
+      "long_description": "Helper question that shows how specified interfaceSpec values resolve to the interfaces in the network.",
+      "tags": [
+        "specifiers"
+      ],
+      "synonyms": [
+        "resolve interface specifier",
+        "which interfaces match"
+      ],
+      "differential": false,
+      "inputs": {
+        "grammarVersion": {
+          "type": "string",
+          "required": false,
+          "display_name": "Grammar version",
+          "description": "Version of grammar to use for resolution."
+        },
+        "interfaces": {
+          "type": "interfacesSpec",
+          "required": true,
+          "display_name": "Interfaces",
+          "description": "Input to the interfaceSpecifier."
+        },
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Input to the NodeSpecifier that specifies the set of nodes that should be considered.",
+          "default": "/.*/"
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Interface",
+          "type": "Interface",
+          "description": "Interface"
+        }
+      ]
+    },
+    "resolveIpsOfLocationSpecifier": {
+      "description": "Returns IPs that are auto-assigned to locations.",
+      "long_description": "Helper question that shows IPs that will be assigned to specified locationSpec values by questions are automatically pick IPs based on locations.",
+      "tags": [
+        "specifiers"
+      ],
+      "synonyms": [
+        "resolve IPs from locations",
+        "IPs at a location"
+      ],
+      "differential": false,
+      "inputs": {
+        "grammarVersion": {
+          "type": "string",
+          "required": false,
+          "display_name": "Grammar version",
+          "description": "Version of grammar to use for resolution."
+        },
+        "locations": {
+          "type": "locationSpec",
+          "required": true,
+          "display_name": "Locations",
+          "description": "Input to the LocationSpecifier."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Locations",
+          "type": "str",
+          "description": "Resolution"
+        },
+        {
+          "name": "IP_Space",
+          "type": "str",
+          "description": "IP space"
+        }
+      ]
+    },
+    "resolveIpSpecifier": {
+      "description": "Returns the IP address space corresponding to an ipSpec value.",
+      "long_description": "Helper question that shows how specified ipSpec values resolve to IPs.",
+      "tags": [
+        "specifiers"
+      ],
+      "synonyms": [
+        "resolve IP specifier",
+        "which IPs match this prefix"
+      ],
+      "differential": false,
+      "inputs": {
+        "grammarVersion": {
+          "type": "string",
+          "required": false,
+          "display_name": "Grammar version",
+          "description": "Version of grammar to use for resolution."
+        },
+        "ips": {
+          "type": "ipSpaceSpec",
+          "required": true,
+          "display_name": "IP specifier input",
+          "description": "Input to the IP space specifier."
+        }
+      },
+      "output_columns": [
+        {
+          "name": "IP_Space",
+          "type": "str",
+          "description": "IP space"
+        }
+      ]
+    },
+    "compareFilters": {
+      "description": "Compares filters with the same name in the current and reference snapshots. Returns pairs of lines, one from each filter, that match the same flow(s) but treat them differently (i.e. one permits and the other denies the flow).",
+      "long_description": "This question can be used to summarize how a filter has changed over time. In particular, it highlights differences that cause flows to be denied when they used to be permitted, or vice versa. The output is a table that includes pairs of lines, one from each version of the filter, that both match at least one common flow, and have different action (permit or deny). This is a differential question and the reference snapshot to compare against must be provided in the call to answer().",
+      "tags": [
+        "dataplane",
+        "acl",
+        "differential"
+      ],
+      "synonyms": [
+        "compare ACLs",
+        "filter diff between snapshots",
+        "ACL changes",
+        "differential filter comparison"
+      ],
+      "differential": true,
+      "inputs": {
+        "nodes": {
+          "type": "nodeSpec",
+          "required": false,
+          "display_name": "Nodes",
+          "description": "Only evaluate filters present on nodes matching this node specifier."
+        },
+        "filters": {
+          "type": "filterSpec",
+          "required": false,
+          "display_name": "Filters",
+          "description": "Only evaluate filters that match this filter specifier."
+        },
+        "ignoreComposites": {
+          "type": "boolean",
+          "required": false,
+          "display_name": "Ignore composite filters",
+          "description": "Whether to ignore filters that are composed of multiple filters defined in the configs.",
+          "default": false
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Node",
+          "type": "str",
+          "description": "Hostname."
+        },
+        {
+          "name": "Filter_Name",
+          "type": "str",
+          "description": "The filter name."
+        },
+        {
+          "name": "Line_Index",
+          "type": "str",
+          "description": "The index of the line in the current filter."
+        },
+        {
+          "name": "Line_Content",
+          "type": "str",
+          "description": "The current filter line content."
+        },
+        {
+          "name": "Line_Action",
+          "type": "str",
+          "description": "The current filter line action."
+        },
+        {
+          "name": "Reference_Line_Index",
+          "type": "str",
+          "description": "The index of the line in the reference filter."
+        },
+        {
+          "name": "Reference_Line_Content",
+          "type": "str",
+          "description": "The reference filter line content."
+        }
+      ]
+    },
+    "differentialReachability": {
+      "description": "Returns flows that are successful in one snapshot but not in another.",
+      "long_description": "Searches across all possible flows in the network, with the specified header and path constraints, and returns example flows that are successful in one snapshot and not the other. This is a differential question and the reference snapshot to compare against must be provided in the call to answer().",
+      "tags": [
+        "dataplane",
+        "reachability",
+        "differential"
+      ],
+      "synonyms": [
+        "reachability diff",
+        "connectivity change",
+        "flows affected by a change",
+        "differential reachability"
+      ],
+      "differential": true,
+      "inputs": {
+        "pathConstraints": {
+          "type": "pathConstraint",
+          "required": false,
+          "display_name": "Path Constraints",
+          "description": "Constraint the path a flow can take (start/end/transit locations).",
+          "field_specs": {
+            "startLocation": {
+              "optional": true,
+              "type": "locationSpec"
+            },
+            "endLocation": {
+              "optional": true,
+              "type": "nodeSpec"
+            },
+            "transitLocations": {
+              "optional": true,
+              "type": "nodeSpec"
+            },
+            "forbiddenLocations": {
+              "optional": true,
+              "type": "nodeSpec"
+            }
+          }
+        },
+        "headers": {
+          "type": "headerConstraint",
+          "required": false,
+          "display_name": "Headers",
+          "description": "Packet header constraints.",
+          "field_specs": {
+            "applications": {
+              "optional": true,
+              "type": "applicationSpec"
+            },
+            "dscps": {
+              "optional": true
+            },
+            "dstIps": {
+              "optional": true,
+              "type": "ipSpaceSpec"
+            },
+            "dstPorts": {
+              "optional": true
+            },
+            "ecns": {
+              "optional": true
+            },
+            "flowStates": {
+              "optional": true
+            },
+            "fragmentOffsets": {
+              "optional": true
+            },
+            "icmpCodes": {
+              "optional": true
+            },
+            "icmpTypes": {
+              "optional": true
+            },
+            "ipProtocols": {
+              "optional": true,
+              "type": "ipProtocolSpec"
+            },
+            "packetLengths": {
+              "optional": true
+            },
+            "srcIps": {
+              "optional": true,
+              "type": "ipSpaceSpec"
+            },
+            "srcPorts": {
+              "optional": true
+            },
+            "tcpFlags": {
+              "optional": true
+            }
+          }
+        },
+        "actions": {
+          "type": "dispositionSpec",
+          "required": false,
+          "display_name": "Actions",
+          "description": "Only return flows for which the disposition is from this set.",
+          "default": "success",
+          "allowed_values": [
+            {
+              "value": "success",
+              "description": "Flows that were successfully delivered."
+            },
+            {
+              "value": "failure",
+              "description": "Flows that were dropped somewhere in the network."
+            },
+            {
+              "value": "accepted",
+              "description": "Flows accepted by a device in the snapshot."
+            },
+            {
+              "value": "delivered_to_subnet",
+              "description": "Flows delivered to a host subnet."
+            },
+            {
+              "value": "exits_network",
+              "description": "Flows forwarded to a device outside the snapshot."
+            },
+            {
+              "value": "denied_in",
+              "description": "Flows denied by an input filter."
+            },
+            {
+              "value": "denied_out",
+              "description": "Flows denied by an output filter."
+            },
+            {
+              "value": "no_route",
+              "description": "Flows dropped because no route exists."
+            },
+            {
+              "value": "null_routed",
+              "description": "Flows dropped by a null route."
+            },
+            {
+              "value": "neighbor_unreachable",
+              "description": "Flows whose next hop could not be reached."
+            },
+            {
+              "value": "loop",
+              "description": "Flows that encountered a forwarding loop."
+            },
+            {
+              "value": "insufficient_info",
+              "description": "Batfish does not have enough information to decide."
+            }
+          ]
+        },
+        "maxTraces": {
+          "type": "integer",
+          "required": false,
+          "display_name": "Max Traces",
+          "description": "Limit the number of traces returned."
+        },
+        "invertSearch": {
+          "type": "boolean",
+          "required": false,
+          "display_name": "Invert Search",
+          "description": "Search for packet headers outside the specified headerspace, rather than inside the space."
+        },
+        "ignoreFilters": {
+          "type": "boolean",
+          "required": false,
+          "display_name": "Ignore Filters",
+          "description": "Do not apply filters/ACLs during analysis.",
+          "default": false
+        }
+      },
+      "output_columns": [
+        {
+          "name": "Flow",
+          "type": "Flow",
+          "description": "The flow"
+        },
+        {
+          "name": "Snapshot_Traces",
+          "type": "Set of Trace",
+          "description": "The traces in the BASE snapshot"
+        },
+        {
+          "name": "Snapshot_TraceCount",
+          "type": "int",
+          "description": "The total number traces in the BASE snapshot"
+        },
+        {
+          "name": "Reference_Traces",
+          "type": "Set of Trace",
+          "description": "The traces in the DELTA snapshot"
+        },
+        {
+          "name": "Reference_TraceCount",
+          "type": "int",
+          "description": "The total number traces in the DELTA snapshot"
+        }
+      ]
+    }
+  }
+}

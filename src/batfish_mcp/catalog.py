@@ -173,6 +173,9 @@ json_data = r"""
             {
               "name": "duplicatesOnly",
               "type": "bool"
+            },
+            {
+              "name": "ips"
             }
           ],
           "name": "IP Owners"
@@ -468,6 +471,9 @@ json_data = r"""
             },
             {
               "name": "perPath"
+            },
+            {
+              "name": "pathOption"
             }
           ],
           "name": "Search Route Policies"
@@ -686,6 +692,9 @@ json_data = r"""
           "fun": "filterLineReachability",
           "input": [
             {
+              "name": "nodes"
+            },
+            {
               "name": "filters"
             },
             {
@@ -730,6 +739,7 @@ json_data = r"""
             },
             {
               "name": "headers",
+              "optional": false,
               "type": "HeaderConstraints"
             },
             {
@@ -873,7 +883,7 @@ json_data = r"""
           "fun": "resolveFilterSpecifier",
           "input": [
             {
-              "name": "filter",
+              "name": "filters",
               "optional": false
             },
             {

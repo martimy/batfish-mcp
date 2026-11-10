@@ -194,12 +194,13 @@ behind it. Before loading real configs:
 
 ## Tools
 
-The server provides 9 tools. `batfish_run_question` gives access to the full
+The server provides 10 tools. `batfish_run_question` gives access to the full
 60-question catalog.
 
 | Tool | Description |
 |---|---|
-| `batfish_list_questions(category?)` | The 60-question curated catalog. Each entry includes `category_description`, input `required` flags, `TYPE_HINTS` details (`hint`, `fields`, `placeholder`, `example`), and `supports_differential`/`differential_only`. No Batfish server needed. |
+| `batfish_list_questions(category?)` | The 60-question curated catalog. Each entry includes a one-line `description`, `tags`, `synonyms`, output column names, `category_description`, input `required` flags, `TYPE_HINTS` details (`hint`, `fields`, `placeholder`, `example`), and `supports_differential`/`differential_only`. No Batfish server needed. |
+| `batfish_get_question(fun)` | Full metadata for one question: long description, typed `output_columns` (`{name, type, description}`), input descriptions/defaults/allowed values/`field_specs`, tags, and synonyms. No Batfish server needed. |
 | `batfish_list_snapshots(network?)` | Snapshots of a network. |
 | `batfish_upload_snapshot(name, zip_base64, network?, overwrite?)` | Upload a snapshot zip (base64). The name is sanitized (`safe_snapshot_name`); collisions are made unique (`name_1`, ...). |
 | `batfish_run_question(fun, options?, snapshot?, reference_snapshot?, network?)` | Run any catalog question. Giving `reference_snapshot` and `snapshot` runs a differential question. Returns JSON-safe `{fun, snapshot, reference_snapshot, status, rows, removed_columns}`. |
@@ -218,6 +219,15 @@ and `example`. Any question with `supports_differential: true` can be run
 with both `snapshot` and `reference_snapshot`; the two `differential_only`
 questions (`compareFilters` and `differentialReachability`) require it.
 
+Per-question descriptions, tags, synonyms, output columns, defaults, and
+allowed values live in the checked-in `question_metadata.json`. It is generated
+from live Batfish question templates, the `questions/Parameters.md` specifier
+documentation, and the official docs notebooks by
+`scripts/generate_question_metadata.py`; `scripts/extract_output_columns.py`
+refreshes the docs-derived columns. The server loads this file once, so
+`batfish_list_questions` and `batfish_get_question` work without a Batfish
+server.
+
 Tools that read a snapshot verify it exists before calling Batfish, so a typo
 fails immediately with a message such as
 `snapshot 'abc_net' not found in network 'LAN'; available: []` instead of an
@@ -229,6 +239,8 @@ For reference, this is roughly what the assistant calls when you ask the
 [example prompts](#example-prompts). Upload `abc_net.zip`, then:
 
 ```
+batfish_list_questions(category="Packet Forwarding")
+batfish_get_question(fun="traceroute")
 batfish_upload_snapshot(name="abc_net.zip", zip_base64="UEsDBB==", network="NETWORK")
 batfish_run_question(fun="nodeProperties", snapshot="abc_net")
 batfish_run_assertion(name="assert_no_forwarding_loops", snapshot="abc_net")
@@ -307,6 +319,19 @@ python -m batfish_mcp.server
 
 It speaks stdio JSON-RPC (FastMCP) and does not print logs to stdout.
 
+### Regenerating question metadata
+
+`question_metadata.json` is checked in. To refresh it against a running
+Batfish and the published docs notebooks:
+
+```bash
+python3 scripts/extract_output_columns.py
+python3 scripts/generate_question_metadata.py --host 127.0.0.1
+```
+
+The generator records the coordinator host, pybatfish version, and coverage
+gaps (missing output columns or catalog/template mismatches) in the file.
+
 ### Tests
 
 ```bash
@@ -323,6 +348,7 @@ src/batfish_mcp/
   server.py           # FastMCP tools over the headless core
   session.py          # thread-safe singleton Session
   catalog.py          # curated question catalog (60 questions)
+  question_metadata.json  # generated descriptions/output columns/inputs
   assertion_specs.py  # assertion registry (params as {name, type, optional})
   assertion_io.py     # assertion YAML load/validate/dump
   assertions.py       # assertion runner (session- vs answer-based, PASS/FAIL/ERROR)
@@ -337,6 +363,9 @@ tests/
   test_assertions.py
   test_server.py      # MCP tools + wire round-trip
 examples/assertions.yaml
+scripts/
+  generate_question_metadata.py  # live templates + docs -> question_metadata.json
+  extract_output_columns.py      # docs notebooks -> output_columns.json
 HOW-TO.md             # mini tutorial
 ```
 
