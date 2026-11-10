@@ -166,14 +166,14 @@ def test_run_question_serializes_rows(fake):
 
 def test_run_question_differential_and_validation(fake):
     server.batfish_run_question(
-        fun="nodeProperties", snapshot="now", reference_snapshot="before"
+        fun="nodeProperties", snapshot="snapB", reference_snapshot="snapA"
     )
     assert fake.calls_named("answer")[-1][3] == {
-        "snapshot": "now",
-        "reference_snapshot": "before",
+        "snapshot": "snapB",
+        "reference_snapshot": "snapA",
     }
     with pytest.raises(ValueError, match="reference_snapshot requires snapshot"):
-        server.batfish_run_question(fun="nodeProperties", reference_snapshot="before")
+        server.batfish_run_question(fun="nodeProperties", reference_snapshot="snapA")
 
 
 def test_run_question_serializes_tuples_and_nan():
@@ -187,6 +187,50 @@ def test_run_question_serializes_tuples_and_nan():
         assert result["removed_columns"] == ["B"]  # all-empty column dropped
     finally:
         clear_session()
+
+
+def test_missing_snapshot_is_reported_before_running(fake):
+    with pytest.raises(ValueError) as exc:
+        server.batfish_run_question(fun="nodeProperties", snapshot="abc_net")
+    message = str(exc.value)
+    assert "snapshot 'abc_net' not found in network 'NETWORK'" in message
+    assert "available: ['snapA', 'snapB']" in message
+    assert fake.calls_named("answer") == []  # nothing was sent to Batfish
+
+    with pytest.raises(ValueError) as exc:
+        server.batfish_run_question(
+            fun="nodeProperties", snapshot="snapA", reference_snapshot="abc_net"
+        )
+    assert "snapshot 'abc_net' not found" in str(exc.value)
+
+
+def test_missing_snapshot_reports_the_network(fake):
+    with pytest.raises(ValueError) as exc:
+        server.batfish_run_question(
+            fun="nodeProperties", snapshot="snapA", network="LAN"
+        )
+    message = str(exc.value)
+    assert "snapshot 'snapA' not found in network 'LAN'" in message
+    assert "available: []" in message
+    assert ("set_network", "LAN") in fake.calls
+
+
+def test_snapshot_precheck_applies_to_all_snapshot_tools(fake):
+    calls = [
+        lambda: server.batfish_get_topology(kind="layer3", snapshot="nope"),
+        lambda: server.batfish_run_assertion(
+            name="assert_no_forwarding_loops", snapshot="nope"
+        ),
+        lambda: server.batfish_run_assertion_suite(
+            suite_yaml="version: 1\nassertions: []", snapshot="nope"
+        ),
+        lambda: server.batfish_fork_snapshot(base_name="nope"),
+        lambda: server.batfish_delete_snapshot(name="nope"),
+    ]
+    for call in calls:
+        with pytest.raises(ValueError) as exc:
+            call()
+        assert "snapshot 'nope' not found in network 'NETWORK'" in str(exc.value)
 
 
 # ------------------------------------------------------------------ assertions
@@ -282,6 +326,7 @@ def test_fork_snapshot_unique_names(fake):
 
 
 def test_fork_snapshot_custom_and_failures(fake):
+    fake.networks["OTHER"] = ["snapA"]
     result = server.batfish_fork_snapshot(
         base_name="snapA", name="my snap", failed_nodes=["r1"], network="OTHER"
     )

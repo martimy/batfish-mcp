@@ -134,6 +134,32 @@ def _serialize_answer(answer: Any, fun: str, snapshot: Optional[str],
     return {**base, "rows": rows, "removed_columns": sorted(removed)}
 
 
+def _ensure_snapshots(bf, *snapshots: Optional[str]) -> None:
+    """Raise a clear error before Batfish fails on an unknown snapshot.
+
+    Passing a nonexistent snapshot to a question otherwise surfaces as an
+    opaque 500 ("Failed to queue work: No value present") with a Java stack
+    trace. Listing snapshots first lets the caller see exactly what was
+    requested and what is available.
+    """
+    requested = [s for s in snapshots if s is not None]
+    if not requested:
+        return
+
+    available = bf.list_snapshots()
+    missing = [s for s in requested if s not in available]
+    if not missing:
+        return
+
+    network = getattr(bf, "network", None)
+    subject = "snapshot" if len(missing) == 1 else "snapshots"
+    names = ", ".join(repr(s) for s in missing)
+    raise ValueError(
+        f"{subject} {names} not found in network {network!r}; "
+        f"available: {available}"
+    )
+
+
 @mcp.tool()
 def batfish_list_questions(category: Optional[str] = None) -> list[dict]:
     """List Batfish questions from the curated catalog.
@@ -220,6 +246,7 @@ def batfish_delete_snapshot(
         if network is not None:
             bf.set_network(network)
         safe_name = safe_snapshot_name(name)
+        _ensure_snapshots(bf, safe_name)
         bf.delete_snapshot(safe_name)
         return {"name": safe_name}
 
@@ -287,13 +314,16 @@ def batfish_run_question(
     - ``reference_snapshot`` + ``snapshot`` runs a differential question
       comparing the two; both are required for differential questions.
     - ``network`` points the session at a network first, if given.
+    - A named ``snapshot``/``reference_snapshot`` must exist in the network;
+      otherwise a ``ValueError`` lists the available snapshots.
 
     Returns ``{fun, snapshot, reference_snapshot, status, rows,
     removed_columns}`` where ``rows`` is a list of row dicts.
     """
     with _lock:
+        bf = get_session()
         if network is not None:
-            get_session().set_network(network)
+            bf.set_network(network)
 
         snapshots = None
         if reference_snapshot is not None:
@@ -304,6 +334,7 @@ def batfish_run_question(
                 )
             snapshots = (reference_snapshot, snapshot)
 
+        _ensure_snapshots(bf, snapshot, reference_snapshot)
         answer = queries.run_query(
             {"fun": fun, "options": options or {}},
             snapshots=snapshots,
@@ -460,8 +491,10 @@ def batfish_run_assertion(
     ``status: "error"`` with an ``errors`` list (nothing is run).
     """
     with _lock:
+        bf = get_session()
         if network is not None:
-            get_session().set_network(network)
+            bf.set_network(network)
+        _ensure_snapshots(bf, snapshot)
 
         item = {"type": name, "params": params or {}}
         if question:
@@ -504,8 +537,10 @@ def batfish_run_assertion_suite(
     answer_rows?}`` per assertion, plus a ``summary`` of pass/fail/error counts.
     """
     with _lock:
+        bf = get_session()
         if network is not None:
-            get_session().set_network(network)
+            bf.set_network(network)
+        _ensure_snapshots(bf, snapshot)
 
         items, errors = assertion_io.load_assertions(suite_yaml, _known_funs())
         if errors:
@@ -556,6 +591,7 @@ def batfish_fork_snapshot(
         bf = get_session()
         if network is not None:
             bf.set_network(network)
+        _ensure_snapshots(bf, base_name)
 
         final = safe_snapshot_name(name) if name is not None else safe_snapshot_name(base_name + "_Fail")
         if not overwrite:
@@ -595,8 +631,10 @@ def batfish_get_topology(
         raise ValueError(f"kind must be 'layer3' or 'routing' (got {kind!r})")
 
     with _lock:
+        bf = get_session()
         if network is not None:
-            get_session().set_network(network)
+            bf.set_network(network)
+        _ensure_snapshots(bf, snapshot)
         if kind == "layer3":
             frame = queries.run_query(
                 {"fun": "layer3Edges"}, snapshot=snapshot

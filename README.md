@@ -218,6 +218,11 @@ and `example`. Any question with `supports_differential: true` can be run
 with both `snapshot` and `reference_snapshot`; the two `differential_only`
 questions (`compareFilters` and `differentialReachability`) require it.
 
+Tools that read a snapshot verify it exists before calling Batfish, so a typo
+fails immediately with a message such as
+`snapshot 'abc_net' not found in network 'LAN'; available: []` instead of an
+opaque Batfish work-queue error.
+
 ## Tool call examples
 
 For reference, this is roughly what the assistant calls when you ask the

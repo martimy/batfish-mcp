@@ -110,6 +110,8 @@ def fake_session(log, calls):
         return fun
 
     return SimpleNamespace(
+        network="NETWORK",
+        list_snapshots=lambda: ["snapA"],
         q=SimpleNamespace(
             undefinedReferences=FakeQuestion(0, log=log),
             bgpEdges=FakeQuestion(3, log=log),
