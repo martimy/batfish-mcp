@@ -28,6 +28,7 @@ Tool surface:
 
 - ``batfish_list_questions``       — the curated question catalog (catalog.py)
 - ``batfish_list_snapshots``       — snapshots of the current network
+- ``batfish_delete_snapshot``      — delete a snapshot
 - ``batfish_upload_snapshot``      — upload a snapshot zip (base64-encoded)
 - ``batfish_run_question``         — run any catalog question, incl. differential
 - ``batfish_list_assertions``      — assertion registry with param descriptions
@@ -147,6 +148,29 @@ def batfish_list_snapshots(network: Optional[str] = None) -> list[str]:
         if network is not None:
             bf.set_network(network)
         return bf.list_snapshots()
+
+
+@mcp.tool()
+def batfish_delete_snapshot(
+    name: str,
+    network: Optional[str] = None,
+) -> dict:
+    """Delete a Batfish snapshot.
+
+    - ``name``: the snapshot name to delete (sanitized with
+      ``safe_snapshot_name``).
+    - ``network``: the network the snapshot lives in; if given, the
+      session is pointed at it first.
+
+    Returns ``{name}`` — the name that was deleted.
+    """
+    with _lock:
+        bf = get_session()
+        if network is not None:
+            bf.set_network(network)
+        safe_name = safe_snapshot_name(name)
+        bf.delete_snapshot(safe_name)
+        return {"name": safe_name}
 
 
 @mcp.tool()
