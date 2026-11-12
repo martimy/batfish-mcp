@@ -4,7 +4,6 @@
 [![PyPI](https://img.shields.io/pypi/v/batfish-q-mcp)](https://pypi.org/project/batfish-q-mcp/)
 [![Python](https://img.shields.io/pypi/pyversions/batfish-q-mcp)](https://pypi.org/project/batfish-q-mcp/)
 [![License](https://img.shields.io/pypi/l/batfish-q-mcp)](LICENSE)
-[![Batfish Q MCP server](https://mcprush.com/badge/batfish-q-mcp/card.svg)](https://mcprush.com/to/batfish-q-mcp?ref=badge)
 
 An MCP (Model Context Protocol) server that exposes [Batfish](https://batfish.org)
 as tools for AI assistants. Point it at a snapshot of your network configs and
@@ -24,6 +23,8 @@ With it, an assistant can:
 > different command name (`batfish-q-mcp`) so the two can be installed side by side.
 
 <!-- TODO: add a screenshot or short GIF of a real prompt and answer here, e.g. ![Demo](docs/images/demo.png) -->
+
+[![Batfish Q MCP server](https://mcprush.com/badge/batfish-q-mcp/card.svg)](https://mcprush.com/to/batfish-q-mcp?ref=badge)
 
 ## Example prompts
 
@@ -332,6 +333,12 @@ See [HOW-TO.md](HOW-TO.md) for a longer walkthrough.
 
 ## Development
 
+### Developer documentation
+
+See [`docs/`](docs/README.md) for architecture, module reference, tool
+contracts, the metadata pipeline, assertion internals, and change recipes. Start
+with the [high-level overview](docs/01-overview.md).
+
 ### Install from source
 
 ```bash
@@ -418,6 +425,7 @@ scripts/
   generate_question_metadata.py  # live templates + docs -> question_metadata.json
   extract_output_columns.py      # docs notebooks -> output_columns.json
 HOW-TO.md             # mini tutorial
+docs/                 # developer documentation (start at docs/README.md)
 ```
 
 ## Feedback and contributions
