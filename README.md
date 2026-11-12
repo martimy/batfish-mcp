@@ -274,6 +274,11 @@ Header values use Batfish specifiers:
 * `bidirectionalReachability` requires `headers.dstIps`; without a destination
   Batfish fails during reverse-flow transformation setup.
 
+Batfish returns representative flows for broad headers: a prefix such as
+`{"srcIps": "192.168.1.0/24"}` may produce a flow sourced from a network or
+broadcast address. Prefer node names, interface locations, or explicit host
+IPs when you need a realistic example.
+
 `reachability` returns example flows that satisfy the constraints, not an
 exhaustive source-to-destination matrix. Use `traceroute` for one specific
 destination, or run per-pair queries to build a matrix.

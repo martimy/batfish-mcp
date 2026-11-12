@@ -223,6 +223,10 @@ await tools["batfish-q-mcp"].batfish_run_question({
 
 - **Node names work in `srcIps` / `dstIps`.** A node name resolves to that
   node's addresses, so `{ srcIps: "server_1", dstIps: "server_2" }` is valid.
+- **Prefer concrete locations for realistic examples.** Batfish returns
+  representative flows for broad headers, so a prefix such as
+  `srcIps: "192.168.1.0/24"` may yield a network or broadcast address as the
+  source. Use node names, interface locations, or explicit host IPs instead.
 - **Ports are strings.** Use `dstPorts: "443"` or `dstPorts: "80,443"`; a
   numeric value such as `dstPorts: 443` is rejected.
 - **`maxTraces` is an integer**, not a string.

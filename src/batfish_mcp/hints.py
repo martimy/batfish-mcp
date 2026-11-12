@@ -28,7 +28,11 @@ TYPE_HINTS = {
             "srcIps/dstIps accept IPs, prefixes, node names, interfaces, or "
             "named IP spaces. srcPorts/dstPorts accept string port specs such "
             "as '443' or '80,443' (numeric JSON values are invalid). If "
-            "ipProtocols is omitted, Batfish tests ICMP."
+            "ipProtocols is omitted, Batfish tests ICMP. Batfish returns "
+            "representative flows for broad headers, so a prefix such as "
+            "'10.0.0.0/24' may yield a network or broadcast source; prefer node "
+            "names, interface locations, or explicit host IPs for realistic "
+            "examples."
         ),
         "placeholder": "{'dstIps': 'server_2', 'srcIps': 'server_1'}",
         "example": (
@@ -47,7 +51,10 @@ TYPE_HINTS = {
     "PathConstraints": {
         "hint": (
             "Dictionary / JSON object of path routing constraints. Locations "
-            "are node names, interfaces, or location specifiers."
+            "are node names, interfaces, or location specifiers. Prefer node "
+            "or interface locations for realistic examples; broad prefix "
+            "constraints may produce representative flows with network-address "
+            "sources."
         ),
         "placeholder": "{'startLocation': 'server_1', 'endLocation': 'server_2'}",
         "example": "{'startLocation': 'as1border1', 'endLocation': 'as2border1'}",

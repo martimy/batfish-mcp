@@ -125,8 +125,11 @@ default; set `trace_detail: "full"` when every hop-by-hop step is needed, or
 `"none"` to drop traces. `max_rows` caps large answers (default 50, `0` for no
 limit). Header values are Batfish specifiers: `srcIps`/`dstIps` accept IPs,
 prefixes, node names, or named IP spaces, while `srcPorts`/`dstPorts` require
-string specs such as "443". When an assertion omits `ipProtocols`, Batfish tests
-ICMP; set `ipProtocols` and `dstPorts` for service-level checks.
+string specs such as "443". Batfish returns representative flows for broad
+headers: a prefix such as `10.0.0.0/24` may yield a network or broadcast source.
+Prefer node names, interface locations, or explicit host IPs for realistic
+examples. When an assertion omits `ipProtocols`, Batfish tests ICMP; set
+`ipProtocols` and `dstPorts` for service-level checks.
 """
 
 mcp = FastMCP("batfish-q-mcp", instructions=_INSTRUCTIONS)
@@ -886,6 +889,9 @@ def batfish_run_question(
     prefixes, node names, or named IP spaces; ``srcPorts``/``dstPorts`` take
     strings such as ``"443"``. If ``ipProtocols`` is omitted, Batfish tests
     ICMP, so set ``ipProtocols`` and ``dstPorts`` for service-level checks.
+    Batfish returns representative flows for broad headers, so a prefix such
+    as ``10.0.0.0/24`` may yield a network or broadcast source; prefer node
+    names, interface locations, or explicit host IPs for realistic examples.
     """
     with _lock:
         bf = get_session()
@@ -1175,7 +1181,9 @@ def batfish_run_assertion(
     Header fields follow Batfish rules: ``srcIps``/``dstIps`` accept IPs,
     prefixes, and node names; ``srcPorts``/``dstPorts`` are string specs such
     as ``"443"``. When ``ipProtocols`` is omitted, Batfish tests ICMP, so set
-    ``ipProtocols`` and ``dstPorts`` for service-level assertions.
+    ``ipProtocols`` and ``dstPorts`` for service-level assertions. Prefer node
+    names, interface locations, or explicit host IPs: broad prefixes may make
+    Batfish choose representative flows with network-address sources.
     """
     with _lock:
         bf = get_session()
@@ -1225,7 +1233,10 @@ def batfish_run_assertion_suite(
 
     Header fields follow Batfish rules: ``srcIps``/``dstIps`` accept IPs,
     prefixes, and node names; ``srcPorts``/``dstPorts`` are string specs such
-    as ``"443"``. Without ``ipProtocols``, Batfish tests ICMP.
+    as ``"443"``. Without ``ipProtocols``, Batfish tests ICMP. Prefer node
+    names, interface locations, or explicit host IPs over broad prefixes,
+    which may make Batfish choose representative flows with network-address
+    sources.
 
     All-or-nothing: if the suite is invalid, nothing runs and the result is
     ``{results: [], errors: [...], summary: {...}}``. Otherwise results are

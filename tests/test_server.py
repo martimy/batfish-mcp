@@ -652,9 +652,21 @@ def test_header_hints_document_node_names_and_string_ports():
     assert "'443'" in headers["example"]
     assert "string port spec" in headers["field_types"]["dstPorts"]
     assert "ICMP" in headers["hint"]
+    assert "representative flows" in headers["hint"]
+    assert "network or broadcast" in headers["hint"]
+    assert "explicit host IPs" in headers["hint"]
 
     paths = TYPE_HINTS["PathConstraints"]
     assert "node names" in paths["hint"]
+    assert "representative flows" in paths["hint"]
+    assert "network-address" in paths["hint"]
+
+
+def test_instructions_warn_about_representative_flows():
+    instructions = server.mcp.instructions
+    assert "representative flows" in instructions
+    assert "network or broadcast" in instructions
+    assert "explicit host IPs" in instructions
 
 
 def test_port_fields_accept_strings_and_reject_numbers(fake):
