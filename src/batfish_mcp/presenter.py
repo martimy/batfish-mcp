@@ -28,6 +28,85 @@ import pandas as pd
 
 nan = float("NaN")
 
+TRACE_COLUMNS = frozenset({"Traces", "Snapshot_Traces", "Reference_Traces"})
+TRACE_DETAIL_MODES = frozenset({"summary", "none", "full"})
+
+
+def _trace_disposition(trace):
+    """Disposition string for a pybatfish Trace object or its dict form."""
+    if isinstance(trace, dict):
+        value = trace.get("disposition")
+    else:
+        value = getattr(trace, "disposition", None)
+    return None if value is None else str(value)
+
+
+def _trace_hops(trace):
+    if isinstance(trace, dict):
+        hops = trace.get("hops") or []
+    else:
+        hops = getattr(trace, "hops", None) or []
+    return list(hops)
+
+
+def _hop_node(hop):
+    if isinstance(hop, dict):
+        node = hop.get("node")
+        if isinstance(node, dict):
+            return node.get("name")
+        return node
+    return getattr(hop, "node", None)
+
+
+def summarize_trace(trace):
+    """A compact trace: disposition, node path, and hop count.
+
+    A full Batfish trace can be several KB because every hop carries all of
+    its steps and route details. The summary keeps the parts needed for
+    reachability analysis while dropping the rest.
+    """
+    hops = _trace_hops(trace)
+    path = [name for name in (_hop_node(hop) for hop in hops) if name is not None]
+    return {
+        "disposition": _trace_disposition(trace),
+        "path": path,
+        "hop_count": len(hops),
+    }
+
+
+def summarize_trace_value(value):
+    """Summarize one trace column cell (usually a list of traces)."""
+    if isinstance(value, (list, tuple, set)):
+        return [summarize_trace(trace) for trace in value]
+    if isinstance(value, dict) or hasattr(value, "hops"):
+        return [summarize_trace(value)]
+    return value
+
+
+def compact_traces(df, mode="summary"):
+    """Apply ``mode`` to known trace columns.
+
+    Returns ``(dataframe, removed_columns)``. ``mode`` is one of
+    ``summary``, ``none``, or ``full``; unknown modes are treated as
+    ``full`` by the caller's validation, but this function is deliberately
+    forgiving.
+    """
+    if mode == "full":
+        return df, set()
+
+    present = [column for column in df.columns if column in TRACE_COLUMNS]
+    if not present:
+        return df, set()
+
+    if mode == "none":
+        return df.drop(columns=present), set(present)
+
+    if mode == "summary":
+        df = df.copy()
+        for column in present:
+            df[column] = df[column].map(summarize_trace_value)
+    return df, set()
+
 
 def _is_empty_value(y):
     """

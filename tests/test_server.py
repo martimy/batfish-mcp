@@ -32,7 +32,7 @@ import pandas as pd
 import pytest
 from pybatfish.exception import BatfishException
 
-from fakes import FakeAnswer, FakeBatfish, fake_session
+from fakes import FakeAnswer, FakeBatfish, fake_session, trace
 from batfish_mcp import server
 from batfish_mcp.hints import TYPE_HINTS
 from batfish_mcp.session import clear_session, set_session
@@ -484,6 +484,86 @@ def test_run_question_serializes_tuples_and_nan():
         clear_session()
 
 
+def test_trace_detail_summarizes_and_none_drops_trace_columns():
+    df = pd.DataFrame(
+        {
+            "Flow": ["f1"],
+            "Traces": [[trace("DENIED_IN", "fw", {"filter": "INSIDE-INBOUND"})]],
+            "TraceCount": [1],
+        }
+    )
+    set_session(FakeBatfish(answers={"traceroute": FakeAnswer(df)}))
+    try:
+        summary = server.batfish_run_question(fun="traceroute", snapshot="snapA")
+        assert summary["rows"] == [
+            {
+                "Flow": "f1",
+                "Traces": [
+                    {
+                        "disposition": "DENIED_IN",
+                        "path": ["fw"],
+                        "hop_count": 1,
+                    }
+                ],
+                "TraceCount": 1,
+            }
+        ]
+        assert summary["total_rows"] == 1
+        assert summary["returned_rows"] == 1
+        assert summary["truncated"] is False
+
+        full = server.batfish_run_question(
+            fun="traceroute", snapshot="snapA", trace_detail="full"
+        )
+        assert full["rows"][0]["Traces"][0]["hops"][0]["node"]["name"] == "fw"
+
+        none = server.batfish_run_question(
+            fun="traceroute", snapshot="snapA", trace_detail="none"
+        )
+        assert none["rows"] == [{"Flow": "f1", "TraceCount": 1}]
+        assert none["removed_columns"] == ["Traces"]
+    finally:
+        clear_session()
+
+
+def test_run_question_caps_rows_and_reports_truncation():
+    df = pd.DataFrame({"A": list(range(5))})
+    set_session(FakeBatfish(answers={"nodeProperties": FakeAnswer(df)}))
+    try:
+        result = server.batfish_run_question(
+            fun="nodeProperties", snapshot="snapA", max_rows=2
+        )
+        assert [row["A"] for row in result["rows"]] == [0, 1]
+        assert result["total_rows"] == 5
+        assert result["returned_rows"] == 2
+        assert result["truncated"] is True
+
+        unlimited = server.batfish_run_question(
+            fun="nodeProperties", snapshot="snapA", max_rows=0
+        )
+        assert len(unlimited["rows"]) == 5
+        assert unlimited["truncated"] is False
+    finally:
+        clear_session()
+
+
+def test_run_question_validates_trace_detail_and_max_rows(fake):
+    bad_trace = server.batfish_run_question(
+        fun="nodeProperties", snapshot="snapA", trace_detail="everything"
+    )
+    assert bad_trace["status"] == "error"
+    assert bad_trace["code"] == "INVALID_ARGUMENT"
+    assert "trace_detail" in bad_trace["message"]
+
+    bad_rows = server.batfish_run_question(
+        fun="nodeProperties", snapshot="snapA", max_rows=-1
+    )
+    assert bad_rows["status"] == "error"
+    assert bad_rows["code"] == "INVALID_ARGUMENT"
+    assert "max_rows" in bad_rows["message"]
+    assert fake.calls_named("answer") == []
+
+
 def test_bidirectional_reachability_requires_dst_ips(fake):
     result = server.batfish_run_question(
         fun="bidirectionalReachability",
@@ -734,6 +814,64 @@ def test_assertion_tools_on_fake_session():
         assert answer_based["status"] == "pass"
         assert answer_based["fun"] == "bgpEdges"
         assert answer_based["answer_rows"]  # bgpEdges -> 3 fake rows
+    finally:
+        clear_session()
+
+
+def test_assertion_failure_is_short_and_structured():
+    from pybatfish.exception import BatfishAssertException
+
+    log, calls = [], []
+    session = fake_session(log, calls)
+
+    def fail(**kwargs):
+        assert kwargs["df_format"] == "records"
+        raise BatfishAssertException(
+            "Found undefined reference(s), when none were expected\n"
+            "[{'Node': 'r1', 'Structure_Type': 'acl', 'Structure_Name': 'X'}]"
+        )
+
+    session.asserts.assert_no_undefined_references = fail
+    set_session(session)
+    try:
+        result = server.batfish_run_assertion(
+            name="assert_no_undefined_references", snapshot="snapA"
+        )
+        assert result["status"] == "fail"
+        assert result["message"] == (
+            "Found undefined reference(s), when none were expected"
+        )
+        assert result["answer_rows"] == [
+            {"Node": "r1", "Structure_Type": "acl", "Structure_Name": "X"}
+        ]
+        assert "details" not in result
+    finally:
+        clear_session()
+
+
+def test_assertion_failure_keeps_unparseable_details_but_caps_them():
+    from pybatfish.exception import BatfishAssertException
+
+    log, calls = [], []
+    session = fake_session(log, calls)
+
+    def fail(**kwargs):
+        raise BatfishAssertException(
+            "Found duplicate router-id(s), when none were expected\n"
+            "BGP: [{'Node': 'r1'}]"
+        )
+
+    session.asserts.assert_no_duplicate_router_ids = fail
+    set_session(session)
+    try:
+        result = server.batfish_run_assertion(
+            name="assert_no_duplicate_router_ids", snapshot="snapA"
+        )
+        assert result["message"] == (
+            "Found duplicate router-id(s), when none were expected"
+        )
+        assert result["details"] == "BGP: [{'Node': 'r1'}]"
+        assert "answer_rows" not in result
     finally:
         clear_session()
 

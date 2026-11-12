@@ -40,6 +40,7 @@ Tool surface:
 - ``batfish_get_topology``         — L3 / routing topology as a node/edge graph
 """
 
+import ast
 import base64
 import binascii
 import functools
@@ -118,11 +119,14 @@ If two questions still fit, say so and explain the difference rather than
 guessing. Pass `network` on the first call if the server has no network set.
 
 Question failures come back as `{status: "error", code, message}` instead of a
-Java work-item log; pass `debug: true` to include the raw log. Header values are
-Batfish specifiers: `srcIps`/`dstIps` accept IPs, prefixes, node names, or named
-IP spaces, while `srcPorts`/`dstPorts` require string specs such as "443".
-When an assertion omits `ipProtocols`, Batfish tests ICMP; set
-`ipProtocols` and `dstPorts` for service-level checks.
+Java work-item log; pass `debug: true` to include the raw log. Reachability
+answers compact trace columns to disposition, node path, and hop count by
+default; set `trace_detail: "full"` when every hop-by-hop step is needed, or
+`"none"` to drop traces. `max_rows` caps large answers (default 50, `0` for no
+limit). Header values are Batfish specifiers: `srcIps`/`dstIps` accept IPs,
+prefixes, node names, or named IP spaces, while `srcPorts`/`dstPorts` require
+string specs such as "443". When an assertion omits `ipProtocols`, Batfish tests
+ICMP; set `ipProtocols` and `dstPorts` for service-level checks.
 """
 
 mcp = FastMCP("batfish-q-mcp", instructions=_INSTRUCTIONS)
@@ -131,8 +135,14 @@ mcp = FastMCP("batfish-q-mcp", instructions=_INSTRUCTIONS)
 _lock = threading.RLock()
 
 
-def _serialize_answer(answer: Any, fun: str, snapshot: Optional[str],
-                      reference_snapshot: Optional[str]) -> dict:
+def _serialize_answer(
+    answer: Any,
+    fun: str,
+    snapshot: Optional[str],
+    reference_snapshot: Optional[str],
+    trace_detail: str = "summary",
+    max_rows: int = 50,
+) -> dict:
     """Turns a pybatfish Answer into a JSON-safe dict for the LLM."""
     try:
         status = answer["status"] if answer is not None else None
@@ -145,6 +155,9 @@ def _serialize_answer(answer: Any, fun: str, snapshot: Optional[str],
         "reference_snapshot": reference_snapshot,
         "status": status,
         "rows": [],
+        "total_rows": 0,
+        "returned_rows": 0,
+        "truncated": False,
     }
     if fun == "differentialReachability" and reference_snapshot is not None:
         # The Batfish column names do not say which argument each side came
@@ -163,6 +176,8 @@ def _serialize_answer(answer: Any, fun: str, snapshot: Optional[str],
         return {**base, "rows": getattr(answer, "rows", [])}
 
     frame, removed = presenter.format_result_lite(frame)
+    frame, dropped_traces = presenter.compact_traces(frame, trace_detail)
+    removed = set(removed) | dropped_traces
     try:
         rows = json.loads(frame.to_json(orient="records", date_format="iso"))
     except (TypeError, ValueError):
@@ -170,7 +185,18 @@ def _serialize_answer(answer: Any, fun: str, snapshot: Optional[str],
         rows = json.loads(
             json.dumps(frame.to_dict(orient="records"), default=str)
         )
-    return {**base, "rows": rows, "removed_columns": sorted(removed)}
+
+    total_rows = len(rows)
+    if max_rows and total_rows > max_rows:
+        rows = rows[:max_rows]
+    return {
+        **base,
+        "rows": rows,
+        "removed_columns": sorted(removed),
+        "total_rows": total_rows,
+        "returned_rows": len(rows),
+        "truncated": len(rows) < total_rows,
+    }
 
 
 def _ensure_snapshots(bf, *snapshots: Optional[str]) -> None:
@@ -820,8 +846,10 @@ def batfish_run_question(
     reference_snapshot: Optional[str] = None,
     network: Optional[str] = None,
     debug: bool = False,
+    trace_detail: str = "summary",
+    max_rows: int = 50,
 ) -> dict:
-    """Run a Batfish question and return its answer as JSON-safe rows.
+    """Run a Batfish question and return its JSON-safe rows.
 
     - ``fun`` is the pybatfish question function name (see
       ``batfish_list_questions``); ``options`` is its keyword-argument dict.
@@ -834,17 +862,25 @@ def batfish_run_question(
       (the baseline).
     - ``network`` points the session at a network first, if given.
     - ``debug=True`` includes the raw Batfish exception log in the response.
+    - ``trace_detail`` controls trace columns (``Traces``, ``Snapshot_Traces``,
+      ``Reference_Traces``): ``"summary"`` (default) keeps disposition, node
+      path, and hop count; ``"none"`` drops the trace columns but keeps the
+      trace counts; ``"full"`` returns the original hop-by-hop traces.
+    - ``max_rows`` caps the number of returned rows (default 50). Use ``0``
+      for no limit; ``total_rows``, ``returned_rows``, and ``truncated`` report
+      whether the cap was applied.
     - A named ``snapshot``/``reference_snapshot`` must exist in the network;
       otherwise a ``ValueError`` lists the available snapshots.
 
     Returns ``{fun, snapshot, reference_snapshot, status, rows,
-    removed_columns}`` where ``rows`` is a list of row dicts. A
-    ``differentialReachability`` answer also includes ``trace_columns``, which
-    maps ``Snapshot_Traces`` to the ``snapshot`` argument and
-    ``Reference_Traces`` to ``reference_snapshot``. A Batfish failure returns
-    ``{status: "error", code, message, rows: []}`` instead of raising; known
-    codes include ``SNAPSHOT_INCOMPATIBLE``, ``INVALID_ARGUMENT``,
-    ``INVALID_PORT_SPEC``, and ``BIDIRECTIONAL_REQUIRES_DST``.
+    removed_columns, total_rows, returned_rows, truncated}`` where ``rows`` is
+    a list of row dicts. A ``differentialReachability`` answer also includes
+    ``trace_columns``, which maps ``Snapshot_Traces`` to the ``snapshot``
+    argument and ``Reference_Traces`` to ``reference_snapshot``. A Batfish
+    failure returns ``{status: "error", code, message, rows: []}`` instead of
+    raising; known codes include ``SNAPSHOT_INCOMPATIBLE``,
+    ``INVALID_ARGUMENT``, ``INVALID_PORT_SPEC``, and
+    ``BIDIRECTIONAL_REQUIRES_DST``.
 
     Header values are Batfish specifiers: ``srcIps``/``dstIps`` accept IPs,
     prefixes, node names, or named IP spaces; ``srcPorts``/``dstPorts`` take
@@ -867,6 +903,34 @@ def batfish_run_question(
 
         _ensure_snapshots(bf, snapshot, reference_snapshot)
 
+        if trace_detail not in presenter.TRACE_DETAIL_MODES:
+            return errors.error_payload(
+                "INVALID_ARGUMENT",
+                (
+                    "trace_detail must be one of "
+                    f"{sorted(presenter.TRACE_DETAIL_MODES)} "
+                    f"(got {trace_detail!r})."
+                ),
+                fun=fun,
+                snapshot=snapshot,
+                reference_snapshot=reference_snapshot,
+            )
+        if (
+            isinstance(max_rows, bool)
+            or not isinstance(max_rows, int)
+            or max_rows < 0
+        ):
+            return errors.error_payload(
+                "INVALID_ARGUMENT",
+                (
+                    "max_rows must be a non-negative integer; use 0 for no "
+                    f"limit (got {max_rows!r})."
+                ),
+                fun=fun,
+                snapshot=snapshot,
+                reference_snapshot=reference_snapshot,
+            )
+
         options = options or {}
         invalid = _validate_question_options(
             fun, options, snapshot, reference_snapshot
@@ -888,7 +952,14 @@ def batfish_run_question(
                 reference_snapshot=reference_snapshot,
                 debug=debug,
             )
-        return _serialize_answer(answer, fun, snapshot, reference_snapshot)
+        return _serialize_answer(
+            answer,
+            fun,
+            snapshot,
+            reference_snapshot,
+            trace_detail=trace_detail,
+            max_rows=max_rows,
+        )
 
 
 def _graph_to_dict(graph, kind: str, snapshot: Optional[str]) -> dict:
@@ -964,19 +1035,60 @@ def _answer_rows(answer: Any) -> list:
     return [{"value": str(answer)}]
 
 
+_DETAILS_LIMIT = 8000
+
+
+def _parse_record_details(details: str) -> Optional[list]:
+    """Parse a records-style assertion payload into row dicts, if possible.
+
+    pybatfish's ``df_format="records"`` renders the failing DataFrame with
+    ``str(list_of_dicts)``. Simple answers can be parsed back into structured
+    rows; values containing object reprs (for example full traces) cannot.
+    """
+    text = (details or "").strip()
+    if not text:
+        return None
+    try:
+        value = ast.literal_eval(text)
+    except (ValueError, SyntaxError):
+        return None
+    if isinstance(value, dict):
+        value = [value]
+    if not (
+        isinstance(value, list) and all(isinstance(row, dict) for row in value)
+    ):
+        return None
+    try:
+        return json.loads(json.dumps(value, default=str))
+    except (TypeError, ValueError):
+        return None
+
+
+def _truncate_details(details: str) -> tuple[str, bool]:
+    if len(details) <= _DETAILS_LIMIT:
+        return details, False
+    return details[:_DETAILS_LIMIT], True
+
+
 def _result_to_dict(
     result: "assertions.AssertionResult", name: str, debug: bool = False
 ) -> dict:
     """Flat JSON dict for an AssertionResult (raw answer rows included)."""
+    summary = result.summary or (
+        result.message.splitlines()[0].strip() if result.message else ""
+    )
+    details = result.details or ""
     out = {
         "type": name,
         "status": result.status,
-        "message": result.message,
+        "message": summary,
         "snapshot": result.snapshot or None,
         "ran_at": result.ran_at,
         "runtime": round(result.runtime, 3),
     }
     if result.status == assertions.ERROR:
+        # Keep the classified, actionable error message; the raw text is
+        # available through debug.
         code, message = errors.classify_message(result.message)
         out["code"] = code
         out["message"] = message
@@ -985,8 +1097,16 @@ def _result_to_dict(
     if result.fun:
         out["fun"] = result.fun
     rows = _answer_rows(result.answer)
+    if not rows and details:
+        parsed = _parse_record_details(details)
+        if parsed is not None:
+            rows = parsed
     if rows:
         out["answer_rows"] = rows
+    elif details and result.status != assertions.ERROR:
+        out["details"], truncated = _truncate_details(details)
+        if truncated:
+            out["details_truncated"] = True
     return out
 
 
@@ -1046,7 +1166,10 @@ def batfish_run_assertion(
     - ``debug=True`` includes the raw Batfish error text on failures.
 
     Returns ``{type, status (pass/fail/error), message, snapshot, ran_at,
-    runtime, fun?, answer_rows?, code?}``. Validation problems are returned as
+    runtime, fun?, answer_rows?, details?, code?}``. Failure messages are
+    short: ``message`` is the one-line summary, and failing rows are returned
+    as ``answer_rows`` when they can be parsed; otherwise ``details`` holds a
+    capped records-style payload. Validation problems are returned as
     ``status: "error"`` with an ``errors`` list (nothing is run).
 
     Header fields follow Batfish rules: ``srcIps``/``dstIps`` accept IPs,
@@ -1107,7 +1230,9 @@ def batfish_run_assertion_suite(
     All-or-nothing: if the suite is invalid, nothing runs and the result is
     ``{results: [], errors: [...], summary: {...}}``. Otherwise results are
     ``{type, status, message, snapshot, ran_at, runtime, fun?, answer_rows?,
-    code?}`` per assertion, plus a ``summary`` of pass/fail/error counts.
+    details?, code?}`` per assertion, plus a ``summary`` of pass/fail/error
+    counts. Failure messages use a one-line summary; rows are returned as
+    ``answer_rows`` when parseable, otherwise as capped ``details``.
     """
     with _lock:
         bf = get_session()

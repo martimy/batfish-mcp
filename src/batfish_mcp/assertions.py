@@ -82,6 +82,17 @@ class AssertionResult:
     ran_at: str = ""
     fun: Optional[str] = None  # question the assertion was applied to, if any
     answer: Any = None  # that question's answer, kept to show failing rows
+    summary: str = ""  # first line of message
+    details: str = ""  # remaining message, usually a records-style table
+
+
+def _split_message(message):
+    """Split an assertion message into a one-line summary and details."""
+    text = (message or "").strip()
+    if not text:
+        return "", ""
+    summary, _, details = text.partition("\n")
+    return summary.strip(), details.strip()
 
 
 def result_key(assertion_id, snapshot):
@@ -139,6 +150,11 @@ def run_assertion(name: str, snapshot: Optional[str] = None, **params: Any):
     start = time.perf_counter()
     try:
         params = _prepare_params(params)
+        if name not in ANSWER_BASED and name not in CUSTOM:
+            # Session-bound assertions format their failing rows in the
+            # exception text. Records are much smaller and easier to parse
+            # than the default whitespace-padded pandas table.
+            params.setdefault("df_format", "records")
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
             if name in CUSTOM:
@@ -165,7 +181,9 @@ def run_assertion(name: str, snapshot: Optional[str] = None, **params: Any):
         status, message = FAIL, str(e)
     except Exception as e:
         status, message = ERROR, f"{type(e).__name__}: {e}"
-    return AssertionResult(status, message, time.perf_counter() - start)
+    result = AssertionResult(status, message, time.perf_counter() - start)
+    result.summary, result.details = _split_message(message)
+    return result
 
 
 def _fetch_answer(spec, item, params, snapshot):
@@ -241,4 +259,6 @@ def run_assertion_item(item, snapshot):
     result.ran_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     result.fun = fun
     result.answer = answer
+    if not result.summary:
+        result.summary, result.details = _split_message(result.message)
     return result

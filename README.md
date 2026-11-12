@@ -205,10 +205,10 @@ The server provides 12 tools. `batfish_run_question` gives access to the full
 | `batfish_list_snapshots(network?)` | Snapshots of a network. |
 | `batfish_delete_snapshot(name, network?)` | Delete a snapshot; verifies it exists first. |
 | `batfish_upload_snapshot(name, zip_base64, network?, overwrite?)` | Upload a snapshot zip (base64). The name is sanitized (`safe_snapshot_name`); collisions are made unique (`name_1`, ...). |
-| `batfish_run_question(fun, options?, snapshot?, reference_snapshot?, network?, debug?)` | Run any catalog question. Giving `reference_snapshot` and `snapshot` runs a differential question. Returns JSON-safe `{fun, snapshot, reference_snapshot, status, rows, removed_columns}`; Batfish failures return `{status: "error", code, message}` (set `debug=true` for the raw log). |
+| `batfish_run_question(fun, options?, snapshot?, reference_snapshot?, network?, debug?, trace_detail?, max_rows?)` | Run any catalog question. Giving `reference_snapshot` and `snapshot` runs a differential question. `trace_detail` is `"summary"` (default), `"none"`, or `"full"`; `max_rows` caps returned rows (default 50, `0` for no limit). Returns JSON-safe `{fun, snapshot, reference_snapshot, status, rows, removed_columns, total_rows, returned_rows, truncated}`; Batfish failures return `{status: "error", code, message}` (set `debug=true` for the raw log). |
 | `batfish_list_assertions()` | Live pybatfish assertion names plus the 16-entry registry (`specs`) with parameter descriptions. |
-| `batfish_run_assertion(name, params?, question?, snapshot?, network?, debug?)` | Validate and run one assertion (answer-based ones fetch the answer first). Returns `{type, status, message, snapshot, ran_at, runtime, fun?, answer_rows?, code?}`. |
-| `batfish_run_assertion_suite(suite_yaml, snapshot?, network?, debug?)` | Validate (all-or-nothing) and run a YAML suite; `examples/assertions.yaml` shows the schema. Returns `results[]`, `errors[]`, `summary`. |
+| `batfish_run_assertion(name, params?, question?, snapshot?, network?, debug?)` | Validate and run one assertion (answer-based ones fetch the answer first). Returns `{type, status, message, snapshot, ran_at, runtime, fun?, answer_rows?, details?, code?}`; `message` is a one-line summary and failing rows are structured where possible. |
+| `batfish_run_assertion_suite(suite_yaml, snapshot?, network?, debug?)` | Validate (all-or-nothing) and run a YAML suite; `examples/assertions.yaml` shows the schema. Returns `results[]`, `errors[]`, `summary`; each result uses the same short-message/structured-row shape. |
 | `batfish_fork_snapshot(base_name, name?, failed_nodes?, failed_interfaces?, overwrite?, network?)` | Fork a snapshot, optionally failing nodes or interfaces, then diff the fork against the base with a differential question. `failed_interfaces` accepts `node[interface]` strings such as `"r1[Gi0/0]"` or `{hostname, interface}` mappings. |
 | `batfish_get_topology(kind, snapshot?, network?)` | `kind="layer3"` (from `layer3Edges`, with interface titles) or `"routing"` (from `bgpEdges`). Returns `{kind, snapshot, node_count, edge_count, nodes, edges}`. |
 
@@ -226,6 +226,12 @@ snapshot under test) and `Reference_*` columns come from
 `reference_snapshot` (the baseline being compared against). For
 `differentialReachability`, the response also includes a `trace_columns`
 mapping so these labels cannot be read backwards.
+
+Reachability answers compress trace columns by default. `trace_detail="summary"`
+returns each trace's disposition, node path, and hop count; `"none"` drops the
+trace columns but keeps the trace counts; `"full"` returns the original
+hop-by-hop traces. `max_rows` caps large answers (default 50, `0` for no limit)
+and `total_rows`, `returned_rows`, and `truncated` report any truncation.
 
 Per-question descriptions, tags, synonyms, output columns, defaults, and
 allowed values live in the checked-in `question_metadata.json`. It is generated

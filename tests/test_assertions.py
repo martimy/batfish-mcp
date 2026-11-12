@@ -288,6 +288,7 @@ def test_headers_become_header_constraints_and_bad_fields_error(monkeypatch):
     )
     assert r.status == "pass"
     assert isinstance(seen["headers"], HeaderConstraints) and seen["snapshot"] == "s1"
+    assert seen["df_format"] == "records"
     r = A.run_assertion(
         "assert_flows_succeed", startLocation="r1", headers={"dstIp": "1"}
     )
